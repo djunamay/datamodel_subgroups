@@ -1,4 +1,4 @@
-from .gtex import GTEXDataset
+from subgroups.datasets import GTEXDataset
 # make absolute path
 def gtex():
     return GTEXDataset(path_to_data='/Users/djuna/Documents/subgroups_data/gtex/GTEx_Analysis_v10_RNASeQCv2.4.2_gene_tpm.gct', 

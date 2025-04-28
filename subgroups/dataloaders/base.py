@@ -2,7 +2,7 @@ import numpy as np
 from abc import ABC, abstractmethod
 from numpy.typing import NDArray
 import chz
-from subgroups.datasets.base import DatasetInterface
+from subgroups.datasets import DatasetInterface
 
 @chz.chz
 class DataloaderInterface(ABC):

@@ -3,7 +3,7 @@ import pandas as pd
 import chz  
 from numpy.typing import NDArray
 from .classifier import BaseClassifier
-from .base import DataloaderInterface
+from subgroups.dataloaders import DataloaderInterface
 from xgboost import XGBClassifier
 @chz.chz
 class XGBoostClassifier(BaseClassifier):

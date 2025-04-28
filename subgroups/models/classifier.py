@@ -2,7 +2,7 @@ import numpy as np
 from abc import ABC, abstractmethod
 from numpy.typing import NDArray
 import chz
-from subgroups.train_classifier.base import DataloaderInterface
+from subgroups.dataloaders import DataloaderInterface
 
 @chz.chz
 class ClassifierInterface(ABC):

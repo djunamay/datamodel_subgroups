@@ -1,14 +1,18 @@
-from subgroups.datasets import DatasetInterface, GTEXDataset, AceDataset
+from subgroups.datasets.base import DatasetInterface
 import chz 
+from typing import Callable
 
-# python -m subgroups.experiments.count_samples dataset=subgroups.datasets.registry.gtex
+#  python -m subgroups.experiments.count_samples dataset_factory=subgroups.datasets.registry:gtex
 
 @chz.chz
 class CountSamplesArgs:
-    dataset: DatasetInterface=chz.field(doc="Dataset to count samples from")
+    dataset_factory: Callable[[], DatasetInterface] = chz.field(
+        doc="Callable that returns a dataset instance"
+    )
 
 def count_samples(args: CountSamplesArgs):
-    print(len(args.dataset.features))
+    ds = args.dataset_factory()  
+    print(len(ds.features))
     
 if __name__ == "__main__":
     chz.nested_entrypoint(count_samples)
