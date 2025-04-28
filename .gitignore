@@ -1,0 +1,12 @@
+# ── Python byte-code ───────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+# If you vendor wheels/virtual-envs inside the repo
+*.egg-info/
+*.egg/
+.env/
+.venv/
+
