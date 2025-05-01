@@ -1,135 +1,52 @@
-import chz
+from typing import List
+from numpy.typing import NDArray
 from tqdm import tqdm
 import numpy as np
-from typing import Callable, Type
-from abc import ABC, abstractmethod
-from numpy.typing import NDArray
-from subgroups.datasets import DatasetInterface
-from subgroups.dataloaders import DataloaderInterface
-from subgroups.models.classifier import ClassifierInterface
+from ..utils.scoring import MarginCalculator, SignalNoiseRatioCalculator
+from ..models import SklearnClassifier
+from ..datasamplers.base import MaskGenerator
 
-@chz.chz
-class SignalToNoiseInterface(ABC):
+
+import chz 
+from typing import Callable
+
+def compute_architecture_snr(margin_calculator: MarginCalculator, 
+                             snr_calculator: SignalNoiseRatioCalculator, 
+                             mask_generator: MaskGenerator, 
+                             class_indices_0: NDArray[int], 
+                             class_indices_1: NDArray[int], 
+                             alpha: float, 
+                             num_samples: int, 
+                             features: NDArray[float], 
+                             labels: NDArray[bool], 
+                             models: List[SklearnClassifier], 
+                             n_train_splits: int, 
+                             show_progress: bool)-> NDArray[float]:
     """
-    Interface for per-sample *signal* and *noise* estimates from an ensemble of trained models.
+    Train many models (same architecture, different initializations) on `n_train_splits` random masks.
+    Return the signal-to-noise ratio for each sample.
+    (i.e. how much does the model's prediction (margin) for a given held-out sample vary across different masks vs different model initializations).
 
-    Definitions
-    -----------
-
-    Let:
-        x : a single held-out sample
-        Y : scalar predicted margin for sample x
-        T : a random subset of training samples
-        θ : random model initialization (seed) for a given training subset T
-
-    Signal: S(x) = Var_T( E_θ[ Y | x, T ] )
-        Variance of the mean predicted margin (averaged over seeds θ) for sample x across models trained on different training subsets T.
-        Captures variance in predictions due to changes in training data.
-
-    Noise: N(x) = E_T( Var_θ[ Y | x, T ] )
-        Expected variance of predicted margins for sample x over different model seeds θ, given a fixed training subset T, across models trained on different training subsets T.
-        Captures variance in predictions unexplained by training-set differences (i.e., model randomness).
-
-    Shapes
-    ------
-    Evaluating signal and noise across multiple training subsets or architectures yields arrays of shape:
-        (n_models, n_samples)
-
-    Implementations must expose the two properties below.
+    Returns
+    -------
+    snr : ndarray  shape (n_samples)
     """
+    margins = np.empty((len(models), n_train_splits, num_samples), dtype=float)
+    masks = np.empty((len(models), n_train_splits, num_samples), dtype=bool)
 
-    @property
-    @abstractmethod
-    def signal(self) -> NDArray[float]:
-        """Per-model, per-sample signal estimates (shape: n_models × n_samples)."""
-        ...
-
-    @property
-    @abstractmethod
-    def noise(self) -> NDArray[float]:
-        """Per-model, per-sample noise estimates (shape: n_models × n_samples)."""
-        ...
-
-@chz.chz
-class SignalToNoiseExperiment(SignalToNoiseInterface):
-    dataset: DatasetInterface=chz.field
-    classifier: Type[ClassifierInterface]=chz.field
-    dataloader: Type[DataloaderInterface]=chz.field
-    n_model_inits: int=chz.field
-    n_train_splits: int=chz.field
-    alpha: float=chz.field
-    show_progress: bool=chz.field(default=True)
-    classifier_kwargs: dict=chz.field(default_factory=dict)
-
-    @chz.init_property
-    def _mask(self)-> NDArray[bool]:
-        mask = np.zeros((self.n_train_splits, self.n_model_inits, self.dataset.features.shape[0]), dtype=bool)
-        return mask
-    
-    @chz.init_property
-    def _margins(self)-> NDArray[bool]:
-        margins = np.empty((self.n_train_splits, self.n_model_inits, self.dataset.features.shape[0]), dtype=float)
-        return margins
-    
-    @chz.init_property
-    def _masked_margins(self)-> NDArray[float]:
-        margins = self._margins
-        mask = self._mask 
-        rng_train = np.arange(self.n_train_splits)
-        rng_model = np.arange(self.n_model_inits)
-
-        iterator = (
-            tqdm(rng_train, desc="training splits", disable=not self.show_progress)
-            if self.show_progress else rng_train
-        )
-
-        for i in iterator:                        # loop over resampled training sets
-            dl = self.dataloader(dataset=self.dataset, 
-                            alpha=self.alpha, 
-                            train_seed=i)
-            for j in rng_model:                   # loop over model inits for that split
-                clf = self.classifier(
-                    dataloader=dl,
-                    model_seed=j,
-                    **self.classifier_kwargs,
-                )
-                margins[i, j] = clf.margins
-                mask[i, j, dl.train_indices] = True
-
-        return np.ma.array(margins, mask=mask)
-        
-    @chz.init_property
-    def signal(self)-> NDArray[float]:
-        expectation = self._masked_margins.mean(axis=1)
-        signal = np.array(np.var(expectation, axis=0))
-        return signal
-    
-    @chz.init_property
-    def noise(self)-> NDArray[float]:
-        variance = self._masked_margins.var(axis=1)
-        noise = np.array(np.mean(variance, axis=0))
-        return noise
-    
-@chz.chz
-class SignalToNoiseArgs:
-    dataset_factory: Callable[[], DatasetInterface] = chz.field(
-        doc="Callable that returns a dataset instance"
+    iterator = (
+        tqdm(range(n_train_splits), desc="training splits", disable=not show_progress)
+        if show_progress else range(n_train_splits)
     )
-    classifier: Type[ClassifierInterface]=chz.field
-    classifier_kwargs: Callable[[], dict]=chz.field
-    dataloader: Type[DataloaderInterface]=chz.field
-    n_model_inits: int=chz.field
-    n_train_splits: int=chz.field
-    alpha: float=chz.field
-    show_progress: bool=chz.field(default=True)
+    for i in iterator:
+        current_mask = mask_generator(class_indices_0, class_indices_1, alpha, i, num_samples)
+        train_features = features[current_mask]
+        train_labels = labels[current_mask]
 
-def run_SNR(args: SignalToNoiseArgs):
-    exp = SignalToNoiseExperiment(dataset=args.dataset_factory(), classifier=args.classifier, dataloader=args.dataloader, 
-                                  n_model_inits=args.n_model_inits, n_train_splits=args.n_train_splits, alpha=args.alpha, 
-                                  show_progress=args.show_progress, classifier_kwargs=args.classifier_kwargs())
-    return exp.signal/exp.noise
-    
-if __name__ == "__main__":
-    chz.nested_entrypoint(run_SNR)
+        for j, model in enumerate(models):
+            model.fit(train_features, train_labels)
+            margins[j, i] = margin_calculator(model, features, labels)
+            masks[j, i] = current_mask
 
-
+    snr = snr_calculator(margins, masks)
+    return snr

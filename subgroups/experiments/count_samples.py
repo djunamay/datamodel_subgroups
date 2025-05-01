@@ -1,4 +1,4 @@
-from subgroups.datasets.base import DatasetInterface
+from ..datasets.base import DatasetInterface
 import chz 
 from typing import Callable
 

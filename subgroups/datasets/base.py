@@ -36,6 +36,18 @@ class DatasetInterface(ABC):
         """Return train indices for class 1 and class 0"""
         ...
 
+    @property
+    @abstractmethod
+    def num_samples(self)-> int:
+        """Return number of samples"""
+        ...
+
+    @property
+    @abstractmethod
+    def num_features(self)-> int:
+        """Return number of features"""
+        ...
+
 
 @chz.chz
 class BaseDataset(DatasetInterface):
@@ -44,3 +56,11 @@ class BaseDataset(DatasetInterface):
     @property
     def class_indices(self)-> tuple[NDArray[int], NDArray[int]]:
         return np.argwhere(self.coarse_labels).flatten(), np.argwhere(~self.coarse_labels).flatten()
+
+    @property
+    def num_samples(self)-> int:
+        return len(self.features)
+
+    @property
+    def num_features(self)-> int:
+        return len(self.features[0])

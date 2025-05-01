@@ -1,3 +1,4 @@
-from .classifier import BaseClassifier, ClassifierInterface
-from .xgboost import XGBoostClassifier
-__all__ = ['BaseClassifier', 'XGBoostClassifier', 'ClassifierInterface']
+from .base import ModelFactory, SklearnClassifier
+from .classifier import XgbFactory
+from .eval import MaskMarginStorage
+__all__ = ['ModelFactory', 'SklearnClassifier', 'XgbFactory', 'MaskMarginStorage']
