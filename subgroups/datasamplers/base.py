@@ -1,21 +1,13 @@
 from typing import Protocol
 from numpy.typing import NDArray
 import numpy as np
+import chz
 
-class MaskGenerator(Protocol):
+@chz.chz
+class MaskFactory():
     """
-    A function that generates a boolean mask indexing randomly selected samples for training, including an equal number of samples from each class.
+    A factory that returns a boolean mask of the same length as the labels, where the True values are the indices of the samples to be used for training.
     """
-    def __call__(self, class_indices_0: NDArray[int], class_indices_1: NDArray[int], alpha: float, seed: int, num_samples: int) -> NDArray[bool]:
+
+    def get_masks(self, labels: NDArray[bool]) -> NDArray[bool]:
         ...
-
-def generate_mask(class_indices_0: NDArray[int], class_indices_1: NDArray[int], alpha: float, seed: int, num_samples: int) -> NDArray[bool]:
-    '''
-    Returns a boolean mask indexing randomly selected samples for training, including an equal number of samples from each class.
-    '''
-    rng = np.random.default_rng(seed)
-    mask = np.zeros(num_samples, dtype=bool)
-    samples_per_class = int((num_samples*alpha)/2)
-    indices_class_0, indices_class_1 = rng.permutation(class_indices_0)[:samples_per_class], rng.permutation(class_indices_1)[:samples_per_class]
-    mask[np.concatenate([indices_class_0, indices_class_1])] = True
-    return mask
