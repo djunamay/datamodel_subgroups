@@ -85,4 +85,6 @@ class MaskMarginStorage(MaskMarginStorageInterface):
             self.masks[seed] = output[2]
             self.model_trained[seed] = True
         
-        
+        # TODO: want the function to return the class. Not assign stuff to self.
+        # TODO: use this for the SNR calculation, The experiment is just applying this.
+        # each modelbuild is a slight variation of same archiecture 

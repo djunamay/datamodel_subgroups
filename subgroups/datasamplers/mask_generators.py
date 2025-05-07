@@ -23,3 +23,6 @@ class fixed_alpha_mask_factory(MaskFactory):
         mask[self._rng.permutation(indices_class_1)[:samples_per_class]] = True
         mask[self._rng.permutation(indices_class_0)[:samples_per_class]] = True
         return mask
+    
+
+    
