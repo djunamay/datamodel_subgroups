@@ -6,23 +6,54 @@ from numpy.typing import NDArray
 @chz.chz
 class fixed_alpha_mask_factory(MaskFactory):
     """
-    This mask factory generates a mask with a fixed alpha. An equal number of samples from each class are selected for training.
-    """
-    alpha: float = chz.field(default=0.5, doc='The alpha parameter for the mask generator.')
-    seed: int = chz.field(default=None, doc='The seed used for the random number generator.')
+    Generates balanced binary masks for training sets, selecting a fixed proportion (`alpha`) 
+    of samples. Half of these samples are selected from each class to maintain balance.
 
-    @chz.init_property
-    def _rng(self) -> np.random.Generator:
-        return np.random.default_rng(self.seed)
+    Attributes
+    ----------
+    alpha : float
+        Proportion of the total dataset to include in the training mask (0 < alpha ≤ 1).
+        Default is 0.5.
+    """
+    alpha: float = chz.field(default=0.5, doc='Proportion of the total dataset to include in the training mask (0 < alpha ≤ 1). Half of these samples are selected from each class to maintain balance.')
+
+    @staticmethod
+    def _rng(seed: int) -> np.random.Generator:
+        """
+        Initialize a NumPy random number generator with a specified seed.
+
+        Parameters
+        ----------
+        seed : int
+            Seed for random number generation.
+
+        Returns
+        -------
+        np.random.Generator
+            Initialized random number generator.
+        """
+        return np.random.default_rng(seed)
     
-    def get_masks(self, labels: NDArray[bool]) -> NDArray[bool]:
-        samples_per_class = int((len(labels)*self.alpha)/2)
+    def get_masks(self, labels: NDArray[bool], seed: int = None) -> NDArray[bool]:
+        """
+        Create a balanced mask selecting samples equally from both classes, based on the `alpha` value.
+
+        Parameters
+        ----------
+        labels : NDArray[bool]
+            Binary array of class labels (`True` for positive class, `False` for negative).
+        seed : int, optional
+            Seed for reproducibility. Defaults to None.
+
+        Returns
+        -------
+        NDArray[bool]
+            Binary mask indicating selected samples (`True`) for training.
+        """
+        samples_per_class = int((len(labels) * self.alpha) / 2)
         indices_class_0 = np.where(~labels)[0]
         indices_class_1 = np.where(labels)[0]
         mask = np.zeros(len(labels), dtype=bool)
-        mask[self._rng.permutation(indices_class_1)[:samples_per_class]] = True
-        mask[self._rng.permutation(indices_class_0)[:samples_per_class]] = True
+        mask[self._rng(seed).permutation(indices_class_1)[:samples_per_class]] = True
+        mask[self._rng(seed).permutation(indices_class_0)[:samples_per_class]] = True
         return mask
-    
-
-    

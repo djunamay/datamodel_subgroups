@@ -4,25 +4,73 @@ import numpy as np
 from ..models import SklearnClassifier
 
 def compute_margins(probabilities: NDArray[float], labels: NDArray[bool]) -> NDArray[float]:
-    '''
-    Returns model margins for a given set of features and labels.
-    '''
+    """
+    Calculate model margins for given probabilities and binary labels.
+
+    The margin for each sample is computed as:
+
+    .. math::
+
+        \text{margin}_i = (2y_i - 1) \cdot \left( \log(p_i) - \log(1 - p_i) \right)
+
+    where:
+        - :math:`y_i \in \{0, 1\}` is the true binary label for sample :math:`i`,
+        - :math:`p_i` is the predicted probability of the positive class for sample :math:`i`,
+        - The term :math:`2y_i - 1` maps labels to :math:`\\{-1, +1\\}`,
+        - The log-odds expression :math:`\log(p_i) - \log(1 - p_i)` is the logit of the prediction.
+
+    Parameters
+    ----------
+    probabilities : NDArray[float]
+        Predicted probabilities for the positive class 
+        (shape: [n_samples,]).
+    labels : NDArray[bool]
+        Binary labels indicating the true class 
+        (shape: [n_samples,]).
+
+    Returns
+    -------
+    NDArray[float]
+        Computed margins for each sample 
+        (shape: [n_samples,]).
+    """
     return (labels*2-1)*(np.log(probabilities)-np.log(1-probabilities))
 
-class SignalNoiseRatioCalculator(Protocol):
-    """
-    A function that returns model margins for a given set of features and labels.
-    """
-    def __call__(self, margins: NDArray[float], masks: NDArray[bool]) -> NDArray[float]:
-        ...
 
-def compute_signal_noise(margins: NDArray[float], masks: NDArray[bool])-> NDArray[float]:
+def compute_signal_noise(margins: NDArray[float], masks: NDArray[bool]) -> NDArray[float]:
     """
-    Compute the signal-to-noise ratio for a given set of margins and masks.
-    Margins and masks must have shape (n_models, n_splits, n_samples).
-    """
-    masked_margins = np.ma.array(margins, mask=~masks) #TODO: check that this is really doing what we want
-    signal = np.var(masked_margins.mean(axis=0), axis=0)
-    noise = np.mean(np.var(masked_margins, axis=0), axis=0)
-    return np.array(signal/noise)
+    Compute the signal-to-noise ratio (SNR) for given margins and masks.
 
+    The SNR is computed as follows:
+
+    .. math::
+
+        \text{SNR}_i = \frac{\mathrm{Var}_{\text{split}}\left(\mathbb{E}_{\text{init}}\left[\text{margins}_{s,i}\right]\right)}{\mathbb{E}_{\text{split}}\left[\mathrm{Var}_{\text{init}}\left(\text{margins}_{s,i}\right)\right]}
+
+    where:
+        - :math:`\text{margins}_{s,i}` is the margin of sample :math:`i` in training split :math:`s` across different model initializations.
+        - :math:`\mathbb{E}_{\text{init}}` denotes averaging across model initializations.
+        - :math:`\mathrm{Var}_{\text{split}}` denotes variance computed across training splits.
+        - :math:`\mathrm{Var}_{\text{init}}` denotes variance computed across model initializations.
+        - :math:`\mathbb{E}_{\text{split}}` denotes averaging across training splits.
+
+    Parameters
+    ----------
+    margins : NDArray[float]
+        Margins for each sample 
+        (shape: [n_train_splits, n_samples, n_model_initiations]).
+    masks : NDArray[bool]
+        Boolean masks indicating selected samples 
+        (shape: [n_train_splits, n_samples, n_model_initiations]).
+
+    Returns
+    -------
+    NDArray[float]
+        Signal-to-noise ratio for each held-out sample (shape: [n_samples]).
+        Note that a margin is excluded from the SNR computation for a given sample if that sample was part of the training set used to generate the margin.
+    """
+    margins_masked = np.ma.array(margins, mask=masks)
+    signal = np.var(np.mean(margins_masked, axis=2), axis=0)
+    noise = np.mean(np.var(margins_masked, axis=2), axis=0)
+    snr = signal/noise
+    return np.array(snr)

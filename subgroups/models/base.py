@@ -3,17 +3,28 @@ import chz
 from sklearn.base import BaseEstimator, ClassifierMixin
 
 class SklearnClassifier(ClassifierMixin, BaseEstimator):
-    """Any object that is BOTH BaseEstimator and ClassifierMixin."""
+    """Represents a classifier that combines BaseEstimator and ClassifierMixin functionalities."""
 
 @chz.chz
-class ModelFactory(): # only methods on interfaces
-    seed: int = chz.field(default=None, doc='Seed to initialize the model factory. By default, the seed is not set so the sequence of models built by this factory is non-deterministic.')
+class ModelFactory:
+    """
+    Factory class for creating instances of SklearnClassifier.
+    """
 
-    @chz.init_property
-    def _random_state(self) -> np.random.RandomState:
-        return np.random.default_rng(self.seed)
+    def build_model(self, seed: int = None) -> SklearnClassifier:
+        """
+        Construct a SklearnClassifier instance.
 
-    def build_model(self) -> SklearnClassifier:
+        Parameters
+        ----------
+        seed : int, optional
+            Random seed for reproducibility. Defaults to None.
+
+        Returns
+        -------
+        SklearnClassifier
+            An instance of SklearnClassifier.
+        """
         ...
 
 
