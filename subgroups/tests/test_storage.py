@@ -1,4 +1,4 @@
-from ..datastorage.base import MaskMarginStorage
+from ..datastorage.mask_margin import MaskMarginStorage
 from ..datasamplers.mask_generators import fixed_alpha_mask_factory
 from ..datasets.test_data import RandomDataset
 import numpy as np
