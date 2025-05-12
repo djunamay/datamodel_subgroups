@@ -5,7 +5,6 @@ from .train_classifiers import TrainClassifiersArgs, train_classifiers
 import os
 import chz
 from ..utils.configs import check_and_write_config
-from ..utils.randomness import generate_rngs_from_seed
 
 def pipeline_tc(experiment: Experiment, batch_size: int, batch_starter_seed: int=0, overwrite: bool=False):
     """

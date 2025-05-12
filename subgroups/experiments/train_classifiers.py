@@ -2,7 +2,8 @@ from ..datasets import DatasetInterface
 from ..datasamplers import MaskFactory
 from ..models import ModelFactory
 from ..utils.scoring import compute_margins
-from ..datastorage.base import MaskMarginStorage
+from ..datastorage.mask_margin import MaskMarginStorage
+from ..datastorage.base import MaskMarginStorageInterface
 from typing import Optional
 from pathlib import Path
 import chz
@@ -12,9 +13,8 @@ from numpy.typing import NDArray
 from sklearn.utils import shuffle
 from typing import Any
 import warnings
-from ..utils.randomness import generate_rngs_from_seed
-from numpy.random import Generator
 from ..datasamplers.random_generators import RandomGeneratorTCInterface
+    
 
 @chz.chz
 class TrainClassifiersArgs:

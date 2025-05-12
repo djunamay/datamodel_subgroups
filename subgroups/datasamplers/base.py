@@ -2,7 +2,7 @@ from typing import Protocol
 from numpy.typing import NDArray
 import numpy as np
 import chz
-
+from abc import ABC, abstractmethod
 @chz.chz
 class MaskFactory():
     """
@@ -35,3 +35,42 @@ class MaskFactoryInitializer:
 
     def build_mask_factory(self, seed: int) -> MaskFactory:
         ...
+
+class RandomGeneratorSNRInterface(ABC):
+    batch_starter_seed: int
+
+    @abstractmethod
+    def model_build_seed(self) -> int:
+        ...
+
+    @abstractmethod
+    def mask_seed(self) -> int:
+        ...
+
+    @abstractmethod
+    def train_data_shuffle_seed(self) -> int:
+        ...
+    
+    @abstractmethod
+    def model_factory_seed(self) -> int:
+        ...
+    
+    @abstractmethod
+    def mask_factory_seed(self) -> int:
+        ...
+
+class RandomGeneratorTCInterface(ABC):
+    batch_starter_seed: int
+
+    @abstractmethod
+    def model_build_seed(self) -> int:
+        ...
+
+    @abstractmethod
+    def mask_seed(self) -> int:
+        ...
+
+    @abstractmethod
+    def train_data_shuffle_seed(self) -> int:
+        ...
+

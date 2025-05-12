@@ -8,8 +8,6 @@ import numpy as np
 from .train_classifiers import TrainClassifiersArgs, train_classifiers
 import os
 from tqdm import tqdm
-from numpy.random import Generator
-from ..utils.randomness import generate_rngs_from_seed
 from ..utils.configs import write_chz_class_to_json, append_float_ndjson
 from ..datasamplers.random_generators import RandomGeneratorSNRInterface
 
@@ -66,8 +64,6 @@ class ComputeSNRArgsMultipleArchitectures:
         Seed for mask generation reproducibility.
     """
     dataset: DatasetInterface
-    mask_factory: MaskFactory
-    model_factory: ModelFactory
     in_memory: bool
     n_train_splits: int
     n_model_inits: int

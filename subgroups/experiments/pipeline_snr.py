@@ -17,8 +17,6 @@ def pipeline_snr(experiment: Experiment, batch_size: int, batch_starter_seed: in
     random_generator = experiment.snr_random_generator(batch_starter_seed=batch_starter_seed)
 
     args = ComputeSNRArgsMultipleArchitectures(dataset=experiment.dataset, 
-                             mask_factory=experiment.mask_factory, 
-                             model_factory=experiment.model_factory, 
                              in_memory=experiment.in_memory, 
                              n_train_splits=experiment.snr_n_train_splits, 
                              n_model_inits=experiment.snr_n_model_inits, 

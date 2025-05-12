@@ -2,32 +2,9 @@ import chz
 from abc import ABC, abstractmethod
 from numpy.random import Generator
 import numpy as np
+from .base import RandomGeneratorSNRInterface, RandomGeneratorTCInterface
 
 
-
-class RandomGeneratorSNRInterface(ABC):
-    batch_starter_seed: int
-
-    @abstractmethod
-    def model_build_seed(self) -> int:
-        ...
-
-    @abstractmethod
-    def mask_seed(self) -> int:
-        ...
-
-    @abstractmethod
-    def train_data_shuffle_seed(self) -> int:
-        ...
-    
-    @abstractmethod
-    def model_factory_seed(self) -> int:
-        ...
-    
-    @abstractmethod
-    def mask_factory_seed(self) -> int:
-        ...
-    
 class RandomGeneratorSNR(RandomGeneratorSNRInterface):
     """
     Random generator for SNR experiments.
@@ -61,23 +38,6 @@ class RandomGeneratorSNR(RandomGeneratorSNRInterface):
     @property
     def mask_factory_seed(self) -> int:
         return self._rngs_mask_factory_seed.integers(0, 2**32 - 1)
-
-
-class RandomGeneratorTCInterface(ABC):
-    batch_starter_seed: int
-
-    @abstractmethod
-    def model_build_seed(self) -> int:
-        ...
-
-    @abstractmethod
-    def mask_seed(self) -> int:
-        ...
-
-    @abstractmethod
-    def train_data_shuffle_seed(self) -> int:
-        ...
-
 
 
 class RandomGeneratorTC(RandomGeneratorTCInterface):
