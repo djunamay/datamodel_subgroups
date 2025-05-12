@@ -29,3 +29,9 @@ class MaskFactory():
             Boolean mask array, where `True` marks samples selected for training.
         """
         ...
+
+@chz.chz
+class MaskFactoryInitializer:
+
+    def build_mask_factory(self, seed: int) -> MaskFactory:
+        ...

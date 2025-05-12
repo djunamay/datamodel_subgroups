@@ -2,6 +2,8 @@ from collections.abc import Mapping, Sequence
 import json
 import chz
 import os
+from pathlib import Path
+
 def load_experiment_from_json(file_path: str) -> dict:
     """
     Load experiment configuration from a JSON file.
@@ -46,3 +48,27 @@ def check_and_write_config(experiment, path_to_config, overwrite: bool=False):
                 raise RuntimeError("Experiment config has changed from previous run.\n If this is intentional, set overwrite=True")
     else:
         write_chz_class_to_json(experiment, path_to_config)
+
+def append_chz_ndjson(chz_class, file_path: str):
+    """Append one CHZ object as a line of NDJSON."""
+    with open(file_path, "a") as f:               # 'a' = append
+        json.dump(chz.asdict(chz_class), f)
+        f.write("\n")     
+
+def append_float_ndjson(value: float, file_path: str) -> None:
+    """
+    Append a float to an NDJSON file.  Every call writes **one** JSON value
+    followed by a newline, so the file can be streamed line-by-line later.
+
+    Example line in the file:
+        3.141592653589793
+
+    Parameters
+    ----------
+    value      : The float you want to store.
+    file_path  : Target file (created if missing, appended otherwise).
+    """
+    file_path = Path(file_path)
+    with file_path.open("a", encoding="utf-8") as f:   # 'a' → append
+        json.dump(float(value), f)   # ensures 1.0 stays 1.0, not "1.0"
+        f.write("\n")   

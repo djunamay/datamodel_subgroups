@@ -23,7 +23,8 @@ def pipeline_snr(experiment: Experiment, batch_size: int, batch_starter_seed: in
                              batch_starter_seed=batch_starter_seed,
                              path_to_results=experiment.path_to_snr_outputs if not experiment.in_memory else None,
                              n_architectures=batch_size,
-                             model_factory_initializer=experiment.model_factory_initializer) # TODO: add model architecture seed
+                             model_factory_initializer=experiment.model_factory_initializer,
+                             mask_factory_initializer=experiment.mask_factory_initializer) 
     
     snr_out = compute_snr_for_multiple_architectures(args)
 

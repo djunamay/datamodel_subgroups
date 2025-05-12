@@ -1,5 +1,5 @@
 import chz
-from .base import MaskFactory
+from .base import MaskFactory, MaskFactoryInitializer
 import numpy as np
 from numpy.typing import NDArray
 
@@ -57,3 +57,12 @@ class fixed_alpha_mask_factory(MaskFactory):
         mask[self._rng(seed).permutation(indices_class_1)[:samples_per_class]] = True
         mask[self._rng(seed).permutation(indices_class_0)[:samples_per_class]] = True
         return mask
+
+@chz.chz
+class fixed_alpha_mask_factory_initializer(MaskFactoryInitializer):
+    lower_bound = 0.0
+    upper_bound = 0.5
+    def build_mask_factory(self, seed: int) -> MaskFactory:
+        rng = np.random.default_rng(seed)
+        alpha = rng.uniform(self.lower_bound, self.upper_bound)
+        return fixed_alpha_mask_factory(alpha=alpha)

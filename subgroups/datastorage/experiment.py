@@ -1,7 +1,7 @@
 import chz
 from typing import Protocol, Any, Optional
 from ..datasets import DatasetInterface
-from ..datasamplers import MaskFactory
+from ..datasamplers import MaskFactory, MaskFactoryInitializer
 from ..models import ModelFactory, ModelFactoryInitializer
 from pathlib import Path
 import os
@@ -11,6 +11,7 @@ class Experiment:
     mask_factory: MaskFactory=chz.field(default=None)
     model_factory: ModelFactory=chz.field(default=None)
     model_factory_initializer: ModelFactoryInitializer=chz.field(default=None)
+    mask_factory_initializer: MaskFactoryInitializer=chz.field(default=None)
     in_memory: bool=chz.field(default=True)
     snr_n_train_splits: int=chz.field(default=20)
     snr_n_model_inits: int=chz.field(default=15)
