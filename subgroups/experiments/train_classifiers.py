@@ -14,6 +14,8 @@ from typing import Any
 import warnings
 from ..utils.randomness import generate_rngs_from_seed
 from numpy.random import Generator
+from ..datasamplers.random_generators import RandomGeneratorTCInterface
+
 @chz.chz
 class TrainClassifiersArgs:
     """
@@ -46,7 +48,7 @@ class TrainClassifiersArgs:
     n_models: int
     in_memory: bool = True
     path: Optional[Path] = None
-    rngs: dict[str, Generator] = None
+    random_generator: RandomGeneratorTCInterface = None
 
 def train_one_classifier(features: NDArray[np.float32], labels: NDArray[bool], mask: NDArray[bool], model: SklearnClassifier, shuffle_seed: int):
     """
@@ -97,8 +99,7 @@ def train_classifiers(args: TrainClassifiersArgs):
     ds = args.dataset
     model_factory = args.model_factory
     n_train_splits = args.n_models
-    mask_seed = args.rngs['mask_rng'].integers(0, 2**32 - 1)
-    mask_margin_storage = MaskMarginStorage(n_train_splits, ds.num_samples, ds.coarse_labels, args.mask_factory, args.in_memory, args.path, mask_seed) # TODO: move this outside of the train_classifier function but then would need some way to "flush it"
+    mask_margin_storage = MaskMarginStorage(n_train_splits, ds.num_samples, ds.coarse_labels, args.mask_factory, args.in_memory, args.path, args.random_generator.mask_seed) # TODO: move this outside of the train_classifier function but then would need some way to "flush it"
 
     if mask_margin_storage.masks.shape[0] != n_train_splits:
         warnings.warn(
@@ -107,8 +108,8 @@ def train_classifiers(args: TrainClassifiersArgs):
         )
 
     for i in range(mask_margin_storage.masks.shape[0]):
-        model_seed = args.rngs['model_rng'].integers(0, 2**32 - 1)
-        shuffle_seed = args.rngs['shuffle_rng'].integers(0, 2**32 - 1)
+        model_seed = args.random_generator.model_build_seed
+        shuffle_seed = args.random_generator.train_data_shuffle_seed
         if mask_margin_storage.is_filled(i):
             continue
         else: 

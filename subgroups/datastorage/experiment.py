@@ -5,6 +5,8 @@ from ..datasamplers import MaskFactory, MaskFactoryInitializer
 from ..models import ModelFactory, ModelFactoryInitializer
 from pathlib import Path
 import os
+from ..datasamplers.random_generators import RandomGeneratorSNRInterface, RandomGeneratorTCInterface
+
 @chz.chz
 class Experiment:
     dataset: DatasetInterface=chz.field(default=None)
@@ -17,6 +19,8 @@ class Experiment:
     snr_n_model_inits: int=chz.field(default=15)
     path: Path=chz.field(default=None)
     experiment_name: str=chz.field(default=None)
+    snr_random_generator: RandomGeneratorSNRInterface=chz.field(default=None)
+    tc_random_generator: RandomGeneratorTCInterface=chz.field(default=None)
 
     @chz.init_property
     def _check_path(self):
