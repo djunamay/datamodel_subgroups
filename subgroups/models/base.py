@@ -28,4 +28,11 @@ class ModelFactory:
         ...
 
 
-    
+@chz.chz
+class ModelFactoryInitializer:
+    """
+    Factory class for creating instances of ModelFactory.
+    """
+
+    def build_model_factory(self, seed: int) -> ModelFactory:
+        ...

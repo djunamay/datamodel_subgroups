@@ -7,6 +7,7 @@ from abc import abstractmethod, ABC
 from subgroups.datasamplers.base import MaskFactory
 from numpy.typing import NDArray
 import warnings
+import os
 Array = Union[np.ndarray, np.memmap]
 
 class MaskMarginStorageInterface(ABC):
@@ -114,7 +115,7 @@ class MaskMarginStorage(MaskMarginStorageInterface):
             )
 
     @staticmethod
-    def _create_array(in_memory: bool, path: Optional[Path], dtype: np.dtype, shape: tuple[int, int]) -> Array:
+    def _create_array(in_memory: bool, path: Optional[str], dtype: np.dtype, shape: tuple[int, int]) -> Array:
         """
         Create an array either in memory or as a memory-mapped file.
 
@@ -140,8 +141,10 @@ class MaskMarginStorage(MaskMarginStorageInterface):
         if path is None:
             raise ValueError("path must be provided when in_memory=False")
 
-        mode = "r+" if path.exists() else "w+"
-        return np.memmap(path, dtype=dtype, mode=mode, shape=shape)
+        mode = "r+" if os.path.exists(path) else "w+"
+        return np.lib.format.open_memmap(path, dtype=dtype, mode=mode, shape=shape)
+
+        #return np.memmap(path, dtype=dtype, mode=mode, shape=shape)
 
     @staticmethod
     def _rng(seed: int) -> np.random.Generator:
@@ -190,7 +193,7 @@ class MaskMarginStorage(MaskMarginStorageInterface):
         """
         Masks array (shape: [n_models, n_samples]).
         """
-        temporary_masks = self._create_array(self.in_memory, None if self.in_memory else self.path.with_suffix("_masks.npy"),
+        temporary_masks = self._create_array(self.in_memory, None if self.in_memory else os.path.join(self.path, f"batch_{self.mask_seed}_masks.npy"),
             bool, (self.n_models, self.n_samples)
         )
         return self._populate_masks(self.mask_factory, temporary_masks, self.labels, self._rng(self.mask_seed))
@@ -200,7 +203,7 @@ class MaskMarginStorage(MaskMarginStorageInterface):
         """
         Margins array (shape: [n_models, n_samples]).
         """
-        return self._create_array(self.in_memory, None if self.in_memory else self.path.with_suffix("_margins.npy"),
+        return self._create_array(self.in_memory, None if self.in_memory else os.path.join(self.path, f"batch_{self.mask_seed}_margins.npy"),
             np.float32, (self.n_models, self.n_samples)
         )
 
@@ -209,8 +212,8 @@ class MaskMarginStorage(MaskMarginStorageInterface):
         """
         Test accuracies array (shape: [n_models]).
         """
-        return self._create_array(self.in_memory, None if self.in_memory else self.path.with_suffix("_test_accuracies.npy"), 
-            np.float32, (self.n_models)
+        return self._create_array(self.in_memory, None if self.in_memory else os.path.join(self.path, f"batch_{self.mask_seed}_test_accuracies.npy"), 
+            np.float32, (self.n_models,)
         )
     
     def is_filled(self, instance_index: int) -> bool:
