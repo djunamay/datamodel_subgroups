@@ -1,14 +1,16 @@
 import numpy as np
 from tqdm import tqdm
 from ..datastorage.experiment import Experiment
-from .train_classifiers import TrainClassifiersArgs, train_classifiers
+from .train_classifiers import TrainClassifiersArgs, run_training_batch
 import os
 import chz
 from ..utils.configs import check_and_write_config
 
 def pipeline_tc(experiment: Experiment, batch_size: int, batch_starter_seed: int=0, overwrite: bool=False):
     """
-    Compute the SNR for a given index and batch size.
+    Run a batch of training experiments for a given batch size and starter seed.
+    The starter seed ensures that each model, each mask, and each training data shuffle are built from independent random seeds within and across each run.
+    See `RandomGeneratorTCInterface` for more details.
     """
     if not experiment.in_memory:
         path_to_config = os.path.join(experiment.path_to_results, "experiment_config.json")
@@ -24,7 +26,7 @@ def pipeline_tc(experiment: Experiment, batch_size: int, batch_starter_seed: int
                                 path=experiment.path_to_classifier_outputs if not experiment.in_memory else None, 
                                 random_generator=random_generator)
     
-    train_out = train_classifiers(args)
+    train_out = run_training_batch(args)
 
     if experiment.in_memory:
         return train_out

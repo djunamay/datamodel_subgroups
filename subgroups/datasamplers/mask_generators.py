@@ -60,8 +60,19 @@ class fixed_alpha_mask_factory(MaskFactory):
 
 @chz.chz
 class fixed_alpha_mask_factory_initializer(MaskFactoryInitializer):
-    lower_bound = 0.0
-    upper_bound = 0.5
+    """
+    Initializes a fixed_alpha_mask_factory with a random alpha value between lower_bound and upper_bound.
+
+    Attributes
+    ----------
+    lower_bound : float
+        Lower bound for the alpha value.
+    upper_bound : float
+        Upper bound for the alpha value.
+    """
+    lower_bound: float = chz.field(default=0.0, doc='Lower bound for the alpha value.')
+    upper_bound: float = chz.field(default=0.5, doc='Upper bound for the alpha value.')
+
     def build_mask_factory(self, seed: int) -> MaskFactory:
         rng = np.random.default_rng(seed)
         alpha = rng.uniform(self.lower_bound, self.upper_bound)

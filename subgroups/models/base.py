@@ -9,6 +9,11 @@ class SklearnClassifier(ClassifierMixin, BaseEstimator):
 class ModelFactory:
     """
     Factory class for creating instances of SklearnClassifier.
+
+    Parameters
+    ----------
+    seed : int, optional
+        Random seed for reproducibility. Defaults to None.
     """
 
     def build_model(self, seed: int = None) -> SklearnClassifier:

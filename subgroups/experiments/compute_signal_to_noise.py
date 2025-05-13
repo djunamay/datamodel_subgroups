@@ -1,83 +1,133 @@
-from ..models import ModelFactory   
-from ..datasets import DatasetInterface
-from ..utils.scoring import compute_signal_noise
-from ..models import ModelFactory, ModelFactoryInitializer
-from ..datasamplers import MaskFactory, MaskFactoryInitializer
-import chz
-import numpy as np
-from .train_classifiers import TrainClassifiersArgs, train_classifiers
+# ── std-lib ───────────────────────────────────────────────────────────
+from pathlib import Path
 import os
+from typing import Final, Type
+
+# ── third-party ───────────────────────────────────────────────────────
+import numpy as np
 from tqdm import tqdm
-from ..utils.configs import write_chz_class_to_json, append_float_ndjson
-from ..datasamplers.random_generators import RandomGeneratorSNRInterface
+
+# ── project ───────────────────────────────────────────────────────────
+import chz
+
+from ..datasets          import DatasetInterface
+from ..datasamplers      import MaskFactory, MaskFactoryInitializer
+from ..datasamplers.base import RandomGeneratorSNRInterface
+from ..datasamplers.random_generators import RandomGeneratorSNR
+from ..models            import ModelFactory
+from ..models            import ModelFactoryInitializer   
+from ..utils.scoring     import compute_signal_noise
+from ..utils.configs     import write_chz_class_to_json, append_float_ndjson
+from .train_classifiers  import TrainClassifiersArgs, run_training_batch
 
 @chz.chz
 class ComputeSNRArgs:
     """
-    Configuration arguments for computing the signal-to-noise ratio (SNR).
+    Lightweight container that bundles every input required by
+    :func:`compute_snr_for_one_architecture`.
 
-    Attributes
+    Parameters
     ----------
     dataset : DatasetInterface
-        Interface for accessing the dataset.
+        Provides the feature matrix and labels.
     mask_factory : MaskFactory
-        Factory for generating training sample masks.
+        Creates a boolean training-mask for each split, using the method specified in the `MaskFactory`.
     model_factory : ModelFactory
-        Factory for creating model instances.
-    in_memory : bool
-        Flag indicating whether to store results in memory.
-    n_train_splits : int
-        Number of training splits.
-    n_model_inits : int
-        Number of model initializations.
-    mask_seed : int
-        Seed for mask generation reproducibility.
+        Builds fresh classifier instances, using the model architecture specified in the `ModelFactory`.
+    random_generator : RandomGeneratorSNRInterface
+        Supplies all reproducibility seeds (mask, model, shuffle, …).  
+        See the *RandomGenerator* docstring for the exact per-seed policy.
+    n_models : int
+        Number of classifiers (i.e., training splits) to run. 
+    n_passes : int
+        Number of times to build and train each of the `n_models` (i.e., maintaining the same training splits, but re-initializing the model and re-shuffling the training data).
+    in_memory : bool, default ``True``
+        When *True*, results are kept in RAM and the function returns a
+        :class:`MaskMarginStorage`.  When *False*, results are flushed to disk
+        and the function returns the output path instead.
     """
     dataset: DatasetInterface
     mask_factory: MaskFactory
     model_factory: ModelFactory
-    in_memory: bool
-    n_train_splits: int
-    n_model_inits: int
     random_generator: RandomGeneratorSNRInterface
+
+    n_models: int  = 20           # train-split count
+    n_passes: int  = 15           # model re-initialisations per split
+    in_memory: bool = True
 
 @chz.chz
 class ComputeSNRArgsMultipleArchitectures:
     """
-    Configuration arguments for computing the signal-to-noise ratio (SNR) for multiple architectures.
+    Lightweight container that bundles every input required by
+    :func:`compute_snr_for_multiple_architectures`.
 
-    Attributes
+    Parameters
     ----------
     dataset : DatasetInterface
-        Interface for accessing the dataset.
-    mask_factory : MaskFactory
-        Factory for generating training sample masks.
-    model_factory : ModelFactory
-        Factory for creating model instances.
-    in_memory : bool
-        Flag indicating whether to store results in memory.
-    n_train_splits : int
-        Number of training splits.
-    n_model_inits : int
-        Number of model initializations.
-    mask_seed : int
-        Seed for mask generation reproducibility.
+        Provides the feature matrix and labels.
+    mask_factory_initializer : MaskFactoryInitializer
+        Initializes a new `MaskFactory` object, sampling from methods specified in the `MaskFactoryInitializer`.
+    model_factory_initializer : ModelFactoryInitializer
+        Initializes a new `ModelFactory` object, sampling from parameters specified in the `ModelFactoryInitializer`.
+    random_generator : RandomGeneratorSNRInterface
+        Supplies all reproducibility seeds (mask, model, shuffle, …).  
+        See the *RandomGenerator* docstring for the exact per-seed policy.
+    n_models : int
+        Number of classifiers (i.e., training splits) to run. 
+    n_passes : int
+        Number of times to build and train each of the `n_models` (i.e., maintaining the same training splits, but re-initializing the model and re-shuffling the training data).
+    in_memory : bool, default ``True``
+        When *True*, results are kept in RAM and the function returns a
+        :class:`MaskMarginStorage`.  When *False*, results are flushed to disk
+        and the function returns the output path instead.
     """
     dataset: DatasetInterface
-    in_memory: bool
-    n_train_splits: int
-    n_model_inits: int
-    path_to_results: str
-    n_architectures: int
     model_factory_initializer: ModelFactoryInitializer
     mask_factory_initializer: MaskFactoryInitializer
-    random_generator: RandomGeneratorSNRInterface
+    random_generator: Type[RandomGeneratorSNRInterface]
     
-def compute_snr_for_one_architecture(args: ComputeSNRArgs) -> np.ndarray:
+    n_models: int
+    n_passes: int
+    in_memory: bool
+
+    n_architectures: int
+    path_to_results: str
+
+
+def _mk_train_args(cfg: ComputeSNRArgs) -> TrainClassifiersArgs:
+    """Return the per-pass TrainClassifiersArgs object."""
+    return TrainClassifiersArgs(
+        dataset         = cfg.dataset,
+        mask_factory    = cfg.mask_factory,
+        model_factory   = cfg.model_factory,
+        n_models        = cfg.n_models,
+        random_generator= cfg.random_generator,
+        in_memory       = True,
+    )
+
+def _mk_snr_out(args: ComputeSNRArgsMultipleArchitectures) -> np.ndarray:
+    if args.in_memory:
+        snr_out = np.empty((args.n_architectures, args.dataset.num_samples))
+    else:
+        out_path = os.path.join(args.path_to_results, f"snr_batch_{args.n_architectures}.npy")
+        snr_out = np.lib.format.open_memmap(out_path, dtype=np.float32, mode="w+", shape=(args.n_architectures, args.dataset.num_samples))
+    return snr_out
+
+def _mk_snr_args(args: ComputeSNRArgsMultipleArchitectures, mask_factory: MaskFactory, model_factory: ModelFactory) -> ComputeSNRArgs:
+    return ComputeSNRArgs(dataset=args.dataset, 
+                         mask_factory=mask_factory,
+                         model_factory=model_factory,
+                         in_memory=args.in_memory, 
+                         n_models=args.n_models, 
+                         n_passes=args.n_passes, 
+                         random_generator=args.random_generator)
+
+def compute_snr_for_one_architecture(args: ComputeSNRArgs) -> tuple[np.ndarray, float]:
     """
     Compute the signal-to-noise ratio (SNR) for a given ModelFactory and MaskFactory for each held-out sample.
 
-    This function initializes and trains 'n_model_inits' classifiers for each 'n_train_splits' mask and collects the resulting masks and margins, and computes the SNR.
+    This function runs N passes of :func:`run_training_batch`, where each pass uses the same mask array but random model initializations and data shuffles.
+    The resulting n_models x n_samples x n_passes array allows us to compute the signal-to-noise ratio for each held-out sample (i.e. how much of the variance in the margins is due to the mask vs model initialization and data shuffling).
 
     Parameters
     ----------
@@ -89,50 +139,51 @@ def compute_snr_for_one_architecture(args: ComputeSNRArgs) -> np.ndarray:
     -------
     np.ndarray
         Signal-to-noise ratio for each held-out sample (shape: [n_samples]).
+    float
+        Average test accuracy over all masks and all passes.
     """
-    out_masks = np.empty((args.n_train_splits, args.dataset.num_samples, args.n_model_inits), dtype=bool)
-    out_margins = np.empty((args.n_train_splits, args.dataset.num_samples, args.n_model_inits), dtype=np.float32)
-    out_test_accuracies = np.empty((args.n_model_inits), dtype=np.float32)
+    n_samples = args.dataset.num_samples
+    masks    = np.empty((args.n_models, n_samples, args.n_passes), dtype=bool)
+    margins  = np.empty((args.n_models, n_samples, args.n_passes), dtype=np.float32)
+    accur    = np.empty(args.n_passes, dtype=np.float32)
+    train_args = _mk_train_args(args)
 
-    for i in range(args.n_model_inits):
-        classifier_args = TrainClassifiersArgs(dataset=args.dataset, 
-                     mask_factory=args.mask_factory, 
-                     model_factory=args.model_factory, 
-                     n_models=args.n_train_splits,
-                     in_memory=True,
-                     random_generator=args.random_generator)
+    for p in range(args.n_passes):
+        out   = run_training_batch(train_args)
+        masks[:, :, p]  = out.masks
+        margins[:, :, p]= out.margins
+        accur[p]        = out.test_accuracies.mean()
 
-        out = train_classifiers(classifier_args)
-        out_masks[:,:,i] = out.masks
-        out_margins[:,:,i] = out.margins
-        out_test_accuracies[i] = np.mean(out.test_accuracies)
-        # need to check mask consistency here
-    return compute_signal_noise(out_margins, out_masks), np.mean(out_test_accuracies)
+    snr = compute_signal_noise(margins, masks)
+    return snr, accur.mean()
 
 def compute_snr_for_multiple_architectures(args: ComputeSNRArgsMultipleArchitectures) -> np.ndarray:
+    """
+    This function runs :func:`compute_snr_for_one_architecture` for randomly sampled ModelFactory and MaskFactory (collectively referred to as "architectures") objects.
+    It returns an array of shape [n_architectures, n_samples] containing the signal-to-noise ratio for each held-out sample and each architecture.
 
-    if args.in_memory:
-        snr_out = np.empty((args.n_architectures, args.dataset.num_samples))
-    else:
-        out_path = os.path.join(args.path_to_results, f"snr_batch_{args.n_architectures}.npy")
-        snr_out = np.lib.format.open_memmap(out_path, dtype=np.float32, mode="w+", shape=(args.n_architectures, args.dataset.num_samples))
+    Parameters
+    ----------
+    args : ComputeSNRArgsMultipleArchitectures
+        Configuration and parameters for computing SNR, including dataset, mask factory initializer, model factory initializer, number of training splits, number of model initializations, and seeds.
 
-    for i in tqdm(range(snr_out.shape[0])):
-        model_factory = args.model_factory_initializer.build_model_factory(args.random_generator.model_factory_seed)
-        mask_factory = args.mask_factory_initializer.build_mask_factory(args.random_generator.mask_factory_seed)
-        SNRargs = ComputeSNRArgs(dataset=args.dataset, 
-                             mask_factory=mask_factory, # TODO: change to new mask factory each iteration - use index
-                             model_factory=model_factory, # TODO: change to new model factory each iteration - use index
-                             in_memory=args.in_memory, 
-                             n_train_splits=args.n_train_splits, 
-                             n_model_inits=args.n_model_inits, 
-                             random_generator=args.random_generator)
-        snr, test_accuracy = compute_snr_for_one_architecture(SNRargs)
+    Returns
+    -------
+    np.ndarray
+        Signal-to-noise ratio for each held-out sample and each architecture (shape: [n_architectures, n_samples]).
+    """
+    snr_out = _mk_snr_out(args)
+    n_architectures = snr_out.shape[0]
+    
+    for i in tqdm(range(n_architectures)):
+        new_mask_factory = args.mask_factory_initializer.build_mask_factory(args.random_generator.mask_factory_seed)
+        new_model_factory = args.model_factory_initializer.build_model_factory(args.random_generator.model_factory_seed)
+        snr, test_accuracy = compute_snr_for_one_architecture(_mk_snr_args(args, new_mask_factory, new_model_factory))
         snr_out[i] = snr
 
         if not args.in_memory:
-            write_chz_class_to_json(model_factory, os.path.join(args.path_to_results, f"model_factory_{args.batch_starter_seed}.json"))
-            write_chz_class_to_json(mask_factory, os.path.join(args.path_to_results, f"mask_factory_{args.batch_starter_seed}.json"))
+            write_chz_class_to_json(new_model_factory, os.path.join(args.path_to_results, f"model_factory_{args.batch_starter_seed}.json"))
+            write_chz_class_to_json(new_mask_factory, os.path.join(args.path_to_results, f"mask_factory_{args.batch_starter_seed}.json"))
             append_float_ndjson(test_accuracy, os.path.join(args.path_to_results, f"test_accuracy_{args.batch_starter_seed}.json"))
 
     if args.in_memory:

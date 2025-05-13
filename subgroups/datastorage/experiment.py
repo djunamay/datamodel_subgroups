@@ -6,24 +6,57 @@ from ..models import ModelFactory, ModelFactoryInitializer
 from pathlib import Path
 import os
 from ..datasamplers.random_generators import RandomGeneratorSNRInterface, RandomGeneratorTCInterface
-
+from typing import Type
 @chz.chz
 class Experiment:
-    dataset: DatasetInterface=chz.field(default=None)
-    mask_factory: MaskFactory=chz.field(default=None)
-    model_factory: ModelFactory=chz.field(default=None)
-    model_factory_initializer: ModelFactoryInitializer=chz.field(default=None)
-    mask_factory_initializer: MaskFactoryInitializer=chz.field(default=None)
-    in_memory: bool=chz.field(default=True)
-    snr_n_train_splits: int=chz.field(default=20)
-    snr_n_model_inits: int=chz.field(default=15)
-    path: Path=chz.field(default=None)
-    experiment_name: str=chz.field(default=None)
-    snr_random_generator: RandomGeneratorSNRInterface=chz.field(default=None)
-    tc_random_generator: RandomGeneratorTCInterface=chz.field(default=None)
+    """
+    Class containing all the necessary information for running an experiment.
+
+    Attributes
+    ----------
+    dataset : DatasetInterface
+        The dataset used for the experiment.
+    mask_factory : MaskFactory
+        Factory for generating masks.
+    model_factory : ModelFactory
+        Factory for creating models.
+    model_factory_initializer : ModelFactoryInitializer
+        Initializer for the model factory.
+    mask_factory_initializer : MaskFactoryInitializer
+        Initializer for the mask factory.
+    snr_n_models : int
+        Number of models to build from ModelFactory. Each model will be trained on a different mask from MaskFactory.
+    snr_n_passes : int
+        Number of model initializations for SNR.
+    snr_random_generator : Type[RandomGeneratorSNRInterface]
+        Random generator for SNR experiments.
+    tc_random_generator : Type[RandomGeneratorTCInterface]
+        Random generator for TC experiments.
+    in_memory : bool
+        Flag indicating if the experiment should be conducted in memory.
+    path : Path
+        Path to store experiment results if not in memory.
+    experiment_name : str
+        Name of the experiment.
+    """
+    dataset: DatasetInterface=chz.field(default=None, doc='The dataset used for the experiment.')
+    mask_factory: MaskFactory=chz.field(default=None, doc='Factory for generating masks. This will be used for training the classifier.')
+    model_factory: ModelFactory=chz.field(default=None, doc='Factory for creating models. This will be used for training the classifier.')
+    model_factory_initializer: ModelFactoryInitializer=chz.field(default=None, doc='Initializer for the model factory. This will be used to sample instances of ModelFactory with different hyperparameters for the SNR experiment.')
+    mask_factory_initializer: MaskFactoryInitializer=chz.field(default=None, doc='Initializer for the mask factory. This will be used to sample instances of MaskFactory with different hyperparameters for the SNR experiment.')
+    snr_n_models: int=chz.field(default=20, doc='Number of models to build from ModelFactory. Each model will be trained on a different mask from MaskFactory.')
+    snr_n_passes: int=chz.field(default=15, doc='Number of passes over the same mask matrix for the SNR experiment (the number of times ModelFactory.build_model(seed=i) will be called with different seeds).')
+    in_memory: bool=chz.field(default=True, doc='Flag indicating if the results to any experiment pipelines run on this experiment object will be stored in memory.')
+    path: Path=chz.field(default=None, doc='Path to store experiment results if not in memory.')
+    experiment_name: str=chz.field(default=None, doc='Name of the experiment if not in memory.')
+    snr_random_generator: Type[RandomGeneratorSNRInterface]=chz.field(default=None, doc='Random generator for SNR experiments. Will return independent random seeds for each component of the SNR experiment, based on a batch starter seed.')
+    tc_random_generator: Type[RandomGeneratorTCInterface]=chz.field(default=None, doc='Random generator for TC experiments. Will return independent random seeds for each component of the TC experiment, based on a batch starter seed.')
 
     @chz.init_property
     def _check_path(self):
+        """
+        Check if the path to the experiment results is provided if in_memory is False.
+        """
         if not self.in_memory and self.path is None:
             raise ValueError("path to output must be provided if in_memory is False")
         if self.path is not None and self.experiment_name is None:
@@ -31,6 +64,9 @@ class Experiment:
 
     @chz.init_property
     def path_to_results(self):
+        """
+        Path to the results of the experiment.
+        """
         if self.in_memory:
             return None
         else:
@@ -38,6 +74,9 @@ class Experiment:
 
     @chz.init_property
     def path_to_classifier_outputs(self):
+        """
+        Path to the classifier outputs of the experiment.
+        """
         if self.in_memory:
             return None
         else:
@@ -45,6 +84,9 @@ class Experiment:
 
     @chz.init_property
     def path_to_datamodel_outputs(self):
+        """
+        Path to the datamodel outputs of the experiment.
+        """
         if self.in_memory:
             return None
         else:
@@ -52,6 +94,9 @@ class Experiment:
     
     @chz.init_property
     def path_to_clustering_outputs(self):
+        """
+        Path to the clustering outputs of the experiment.
+        """
         if self.in_memory:
             return None
         else:
@@ -59,6 +104,9 @@ class Experiment:
     
     @chz.init_property
     def path_to_benchmarks(self):
+        """
+        Path to the benchmarks of the experiment.
+        """
         if self.in_memory:
             return None
         else:
@@ -66,6 +114,9 @@ class Experiment:
 
     @chz.init_property
     def path_to_plots(self):
+        """
+        Path to the plots of the experiment.
+        """
         if self.in_memory:
             return None
         else:
@@ -73,6 +124,9 @@ class Experiment:
 
     @chz.init_property
     def path_to_snr_outputs(self):
+        """
+        Path to the SNR outputs of the experiment.
+        """
         if self.in_memory:
             return None
         else:
@@ -81,7 +135,7 @@ class Experiment:
     @chz.init_property
     def _prepare_experiment(self):
         """
-        Prepare an experiment with the given configuration.
+        If not in memory, prepare an experiment with the given configuration.
         """
         if not self.in_memory:
             if not os.path.exists(self.path_to_results):

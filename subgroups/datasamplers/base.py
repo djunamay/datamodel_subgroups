@@ -3,6 +3,8 @@ from numpy.typing import NDArray
 import numpy as np
 import chz
 from abc import ABC, abstractmethod
+from functools import cached_property
+
 @chz.chz
 class MaskFactory():
     """
@@ -36,41 +38,96 @@ class MaskFactoryInitializer:
     def build_mask_factory(self, seed: int) -> MaskFactory:
         ...
 
+
 class RandomGeneratorSNRInterface(ABC):
-    batch_starter_seed: int
+    """
+    Every concrete class that implements this interface must
+
+    • produce an *unchanging* mask_seed for the lifetime of the object
+    • produce a *fresh* seed for the other methods on every call
+    • Takes a batch_starter_seed as input, which is used to initialize the random number generator.
+
+    Parameters
+    ----------
+    batch_starter_seed : int.
+        The seed for the random number generator.
+    """
 
     @abstractmethod
-    def model_build_seed(self) -> int:
+    def _draw_seed_once(self) -> int:
+        """Generate a single seed that will be reused forever."""
         ...
 
-    @abstractmethod
+    # ---------- fixed-per-instance seed ----------
+    @cached_property           # <— cached on first access ☑
     def mask_seed(self) -> int:
+        """
+        Produce the *unchanging* seed for the mask factory (MaskFactory.get_masks(seed=...)) on every call.
+        """
+        # subclasses decide *how* it is drawn, but only once
+        return self._draw_seed_once()
+    
+    # ---------- fresh-per-call seeds -------------
+    @abstractmethod
+    def model_build_seed(self) -> int: 
+        """
+        Produce a *fresh* seed for the model build method (ModelFactory.build_model(seed=...)) on every call.
+        """
         ...
 
     @abstractmethod
-    def train_data_shuffle_seed(self) -> int:
+    def train_data_shuffle_seed(self) -> int: 
+        """
+        Produce a *fresh* seed for the train data shuffle (train_one_classifier(shuffle_seed=...)) on every call.
+        """
         ...
-    
+
     @abstractmethod
-    def model_factory_seed(self) -> int:
+    def model_factory_seed(self) -> int: 
+        """
+        Produce a *fresh* seed for the model factory (class ModelFactoryInitializer.build_model_factory(seed=...)) on every call.
+        """
         ...
-    
+
     @abstractmethod
-    def mask_factory_seed(self) -> int:
+    def mask_factory_seed(self) -> int: 
+        """
+        Produce a *fresh* seed for the mask factory (class MaskFactoryInitializer.build_mask_factory(seed=...)) on every call.
+        """
         ...
+
 
 class RandomGeneratorTCInterface(ABC):
-    batch_starter_seed: int
+    """
+    Every concrete class that implements this interface must
+
+    • produce a *fresh* seed for each method on every call
+    • Takes a batch_starter_seed as input, which is used to initialize the random number generator.
+
+    Parameters
+    ----------
+    batch_starter_seed : int.
+        The seed for the random number generator.
+    """
 
     @abstractmethod
     def model_build_seed(self) -> int:
+        """
+        Produce a *fresh* seed for the model build method (ModelFactory.build_model(seed=...)) on every call.
+        """
         ...
 
     @abstractmethod
     def mask_seed(self) -> int:
+        """
+        Produce a *fresh* seed for the mask factory (MaskFactory.get_masks(seed=...)) on every call.
+        """
         ...
 
     @abstractmethod
     def train_data_shuffle_seed(self) -> int:
+        """
+        Produce a *fresh* seed for the train data shuffle (train_one_classifier(shuffle_seed=...)) on every call.
+        """
         ...
 
