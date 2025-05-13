@@ -14,3 +14,13 @@ def gtex() -> GTEXDataset:
         path_to_meta_data='/Users/djuna/Documents/subgroups_data/gtex/GTEx_Analysis_v10_Annotations_SampleAttributesDS.txt',
         path_to_sample_metadata='/Users/djuna/Documents/subgroups_data/gtex/GTEx_Analysis_v10_Annotations_SubjectPhenotypesDS.txt'
     )
+
+def gtex_subset() -> GTEXDataset:
+    
+    return GTEXDataset(
+        path_to_data="/Users/djuna/Documents/subgroups_data/gtex_subset/subset_esophagus_bloodvessel.gct",
+        path_to_meta_data='/Users/djuna/Documents/subgroups_data/gtex/GTEx_Analysis_v10_Annotations_SampleAttributesDS.txt',
+        path_to_sample_metadata='/Users/djuna/Documents/subgroups_data/gtex/GTEx_Analysis_v10_Annotations_SubjectPhenotypesDS.txt',
+        predicted_class='Esophagus',
+        n_components=5
+    )

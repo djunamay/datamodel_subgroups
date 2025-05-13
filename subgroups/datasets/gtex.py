@@ -26,7 +26,8 @@ class GTEXDataset(BaseDataset):
     path_to_meta_data: str
     path_to_sample_metadata: str
     n_components: int = chz.field(doc="Number of components to reduce the dimensionality to", default=50)
-
+    predicted_class: str = chz.field(doc="Predicted class", default='Brain')
+    
     @chz.init_property
     def _tpm_data(self):
         """
@@ -96,7 +97,7 @@ class GTEXDataset(BaseDataset):
         """
         Binary labels (shape: [n_samples]).
         """
-        return (self._meta_data['SMTS'] == 'Brain').values.astype(bool)
+        return (self._meta_data['SMTS'] == self.predicted_class).values.astype(bool)
 
     @property
     def fine_labels(self) -> NDArray[bool]:

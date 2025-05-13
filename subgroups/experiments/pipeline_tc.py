@@ -6,7 +6,7 @@ import os
 import chz
 from ..utils.configs import check_and_write_config
 
-def pipeline_tc(experiment: Experiment, batch_size: int, batch_starter_seed: int=0, overwrite: bool=False):
+def pipeline_tc(experiment: Experiment, batch_size: int, batch_starter_seed: int=0, overwrite_config: bool=False):
     """
     Run a batch of training experiments for a given batch size and starter seed.
     The starter seed ensures that each model, each mask, and each training data shuffle are built from independent random seeds within and across each run.
@@ -14,7 +14,7 @@ def pipeline_tc(experiment: Experiment, batch_size: int, batch_starter_seed: int
     """
     if not experiment.in_memory:
         path_to_config = os.path.join(experiment.path_to_results, "experiment_config.json")
-        check_and_write_config(experiment, path_to_config, overwrite)
+        check_and_write_config(experiment, path_to_config, overwrite_config)
 
     random_generator = experiment.tc_random_generator(batch_starter_seed=batch_starter_seed)
 

@@ -109,7 +109,7 @@ def _mk_snr_out(args: ComputeSNRArgsMultipleArchitectures) -> np.ndarray:
     if args.in_memory:
         snr_out = np.empty((args.n_architectures, args.dataset.num_samples))
     else:
-        out_path = os.path.join(args.path_to_results, f"snr_batch_{args.n_architectures}.npy")
+        out_path = os.path.join(args.path_to_results, f"snr_batch_{args.random_generator.batch_starter_seed}.npy")
         snr_out = np.lib.format.open_memmap(out_path, dtype=np.float32, mode="w+", shape=(args.n_architectures, args.dataset.num_samples))
     return snr_out
 
@@ -174,7 +174,7 @@ def compute_snr_for_multiple_architectures(args: ComputeSNRArgsMultipleArchitect
     """
     snr_out = _mk_snr_out(args)
     n_architectures = snr_out.shape[0]
-    
+
     for i in tqdm(range(n_architectures)):
         new_mask_factory = args.mask_factory_initializer.build_mask_factory(args.random_generator.mask_factory_seed)
         new_model_factory = args.model_factory_initializer.build_model_factory(args.random_generator.model_factory_seed)
@@ -182,9 +182,9 @@ def compute_snr_for_multiple_architectures(args: ComputeSNRArgsMultipleArchitect
         snr_out[i] = snr
 
         if not args.in_memory:
-            write_chz_class_to_json(new_model_factory, os.path.join(args.path_to_results, f"model_factory_{args.batch_starter_seed}.json"))
-            write_chz_class_to_json(new_mask_factory, os.path.join(args.path_to_results, f"mask_factory_{args.batch_starter_seed}.json"))
-            append_float_ndjson(test_accuracy, os.path.join(args.path_to_results, f"test_accuracy_{args.batch_starter_seed}.json"))
+            write_chz_class_to_json(new_model_factory, os.path.join(args.path_to_results, f"model_factory_{args.random_generator.batch_starter_seed}.json"))
+            write_chz_class_to_json(new_mask_factory, os.path.join(args.path_to_results, f"mask_factory_{args.random_generator.batch_starter_seed}.json"))
+            append_float_ndjson(test_accuracy, os.path.join(args.path_to_results, f"test_accuracy_{args.random_generator.batch_starter_seed}.json"))
 
     if args.in_memory:
         return snr_out

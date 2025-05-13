@@ -3,7 +3,7 @@ import json
 import chz
 import os
 from pathlib import Path
-
+import numpy as np
 def load_experiment_from_json(file_path: str) -> dict:
     """
     Load experiment configuration from a JSON file.
@@ -22,12 +22,40 @@ def load_experiment_from_json(file_path: str) -> dict:
         experiment_config = json.load(f)
     return experiment_config
 
-def write_chz_class_to_json(chz_class, file_path: str):
+
+def write_chz_class_to_json(obj, file_path: str | os.PathLike, *, indent: int = 2):
     """
-    Write a CHZ class to a JSON file.
+    Serialize any CHZ object to JSON.
+    Non-JSON types are converted like this:
+        • numpy scalar  -> native Python int/float
+        • numpy ndarray -> nested list (slow, use with care)
+        • classes / functions -> "module:qualname" string
+        • everything else -> str(o)
     """
-    with open(file_path, 'w') as f:
-        json.dump(chz.asdict(chz_class), f)
+    def _fallback(o):
+        # 1️numpy scalars
+        if isinstance(o, (np.integer, np.floating)):
+            return o.item()
+
+        # 2️ small 1-D/2-D ndarrays (optional – remove if huge)
+        if isinstance(o, np.ndarray):
+            return o.tolist()
+
+        # 3️ class objects or callables
+        if isinstance(o, type) or callable(o):
+            return f"{o.__module__}:{o.__qualname__}"
+
+        # 4️ any CHZ object -> its pretty repr without colours
+        if hasattr(o, "__chz_pretty__"):
+            return o.__chz_pretty__(colored=False)
+
+        # 5️ final fall-through
+        return str(o)
+
+    data = chz.beta_to_blueprint_values(obj)          # regular chz → dict conversion
+    with open(file_path, "w") as fp:
+        json.dump(data, fp, default=_fallback, indent=indent)
+
 
 def deep_equal(a, b):
     if isinstance(a, Mapping) and isinstance(b, Mapping):
@@ -42,9 +70,14 @@ def check_and_write_config(experiment, path_to_config, overwrite: bool=False):
     """
     if overwrite:
         write_chz_class_to_json(experiment, path_to_config)
+
     elif os.path.exists(path_to_config):
-            experiment_config = load_experiment_from_json(path_to_config)
-            if not deep_equal(experiment_config, chz.asdict(experiment)):
+            previous_experiment_config = load_experiment_from_json(path_to_config)
+            path_to_tmp_config = os.path.join(experiment.path_to_results, 'tmp.json')
+            write_chz_class_to_json(experiment, path_to_tmp_config)
+            current_experiment_config = load_experiment_from_json(path_to_tmp_config)
+            os.remove(path_to_tmp_config)
+            if not deep_equal(previous_experiment_config, current_experiment_config):
                 raise RuntimeError("Experiment config has changed from previous run.\n If this is intentional, set overwrite=True")
     else:
         write_chz_class_to_json(experiment, path_to_config)

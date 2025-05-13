@@ -6,13 +6,13 @@ import os
 import chz
 from ..utils.configs import check_and_write_config
 
-def pipeline_snr(experiment: Experiment, batch_size: int, batch_starter_seed: int, overwrite: bool=False):
+def pipeline_snr(experiment: Experiment, batch_size: int, batch_starter_seed: int, overwrite_config: bool=False):
     """
-    Compute the SNR for a given index and batch size.
+    Compute the signal-to-noise ratio (SNR) for a number (batch_size) of model architectures.
     """
     if not experiment.in_memory:
         path_to_config = os.path.join(experiment.path_to_results, "experiment_config.json")
-        check_and_write_config(experiment, path_to_config, overwrite)
+        check_and_write_config(experiment, path_to_config, overwrite_config)
     
     random_generator = experiment.snr_random_generator(batch_starter_seed=batch_starter_seed)
 
