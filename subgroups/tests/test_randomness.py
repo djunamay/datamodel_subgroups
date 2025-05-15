@@ -7,6 +7,7 @@ from ..experiments.pipeline_tc import pipeline_tc
 from ..experiments.pipeline_snr import pipeline_snr
 from ..datasamplers.mask_generators import fixed_alpha_mask_factory_initializer
 from ..datasamplers.random_generators import RandomGeneratorSNR, RandomGeneratorTC
+from ..experiments.stopping_condition import SNRPrecisionStopping
 import numpy as np
 
 def test_mask_storage_across_seeds():
@@ -69,7 +70,8 @@ def test_tc_pipeline_across_seeds():
             snr_n_models=5, 
             snr_n_passes=3,
             snr_random_generator=RandomGeneratorSNR,
-            tc_random_generator=RandomGeneratorTC)
+            tc_random_generator=RandomGeneratorTC,
+            stopping_condition=SNRPrecisionStopping(tolerance=0.05))
 
     run1 = pipeline_tc(exp, batch_size=3, batch_starter_seed=1)
     run2 = pipeline_tc(exp, batch_size=3, batch_starter_seed=1)
@@ -97,7 +99,8 @@ def test_snr_across_seeds():
            snr_n_models=2, 
            snr_n_passes=2,
            snr_random_generator=RandomGeneratorSNR,
-           tc_random_generator=RandomGeneratorTC)
+           tc_random_generator=RandomGeneratorTC,
+           stopping_condition=SNRPrecisionStopping(tolerance=0.05))
 
     snr1 = pipeline_snr(exp, batch_size=2, batch_starter_seed=0)
     snr2 = pipeline_snr(exp, batch_size=2, batch_starter_seed=0)

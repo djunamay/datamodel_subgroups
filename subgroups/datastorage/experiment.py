@@ -6,6 +6,7 @@ from ..models import ModelFactory, ModelFactoryInitializer
 from pathlib import Path
 import os
 from ..datasamplers.random_generators import RandomGeneratorSNRInterface, RandomGeneratorTCInterface
+from ..experiments.stopping_condition import StoppingConditionInterface
 from typing import Type
 @chz.chz
 class Experiment:
@@ -38,6 +39,8 @@ class Experiment:
         Path to store experiment results if not in memory.
     experiment_name : str
         Name of the experiment.
+    stopping_condition : StoppingConditionInterface
+        Stopping condition for the SNR experiment.
     """
     dataset: DatasetInterface=chz.field(default=None, doc='The dataset used for the experiment.')
     mask_factory: MaskFactory=chz.field(default=None, doc='Factory for generating masks. This will be used for training the classifier.')
@@ -51,6 +54,7 @@ class Experiment:
     experiment_name: str=chz.field(default=None, doc='Name of the experiment if not in memory.')
     snr_random_generator: Type[RandomGeneratorSNRInterface]=chz.field(default=None, doc='Random generator for SNR experiments. Will return independent random seeds for each component of the SNR experiment, based on a batch starter seed.')
     tc_random_generator: Type[RandomGeneratorTCInterface]=chz.field(default=None, doc='Random generator for TC experiments. Will return independent random seeds for each component of the TC experiment, based on a batch starter seed.')
+    stopping_condition: StoppingConditionInterface=chz.field(default=None, doc='Stopping condition for the SNR experiment.')
 
     @chz.init_property
     def _check_path(self):

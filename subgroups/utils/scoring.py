@@ -4,7 +4,7 @@ import numpy as np
 from ..models import SklearnClassifier
 
 def compute_margins(probabilities: NDArray[float], labels: NDArray[bool]) -> NDArray[float]:
-    """
+    r"""
     Calculate model margins for given probabilities and binary labels.
 
     The margin for each sample is computed as:
@@ -38,7 +38,7 @@ def compute_margins(probabilities: NDArray[float], labels: NDArray[bool]) -> NDA
 
 
 def compute_signal_noise(margins: NDArray[float], masks: NDArray[bool]) -> NDArray[float]:
-    """
+    r"""
     Compute the signal-to-noise ratio (SNR) for given margins and masks.
 
     The SNR is computed as follows:
@@ -58,10 +58,10 @@ def compute_signal_noise(margins: NDArray[float], masks: NDArray[bool]) -> NDArr
     ----------
     margins : NDArray[float]
         Margins for each sample 
-        (shape: [n_train_splits, n_samples, n_model_initiations]).
+        (shape: [n_model_initializations, n_train_splits, n_samples]).
     masks : NDArray[bool]
         Boolean masks indicating selected samples 
-        (shape: [n_train_splits, n_samples, n_model_initiations]).
+        (shape: [n_model_initializations, n_train_splits, n_samples]).
 
     Returns
     -------
@@ -70,7 +70,9 @@ def compute_signal_noise(margins: NDArray[float], masks: NDArray[bool]) -> NDArr
         Note that a margin is excluded from the SNR computation for a given sample if that sample was part of the training set used to generate the margin.
     """
     margins_masked = np.ma.array(margins, mask=masks)
-    signal = np.var(np.mean(margins_masked, axis=2), axis=0)
-    noise = np.mean(np.var(margins_masked, axis=2), axis=0)
-    snr = signal/noise
+    E_init = np.mean(margins_masked, axis=0)
+    V_init = np.var(margins_masked, axis=0)
+    signal = np.var(np.array(E_init), axis=0) # TODO: should these be masked or not?
+    noise = np.mean(np.array(V_init), axis=0)
+    snr = signal/np.maximum(noise, 1e-12)
     return np.array(snr)

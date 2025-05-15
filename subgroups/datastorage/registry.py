@@ -6,6 +6,7 @@ from ..models.classifier import XgbFactoryInitializer
 from ..datasamplers.mask_generators import fixed_alpha_mask_factory_initializer
 from .experiment import Experiment
 from ..datasamplers.random_generators import RandomGeneratorSNR, RandomGeneratorTC
+from ..experiments.stopping_condition import SNRPrecisionStopping
 
 def gtex_experiment() -> Experiment:
     return Experiment(
@@ -29,12 +30,13 @@ def gtex_subset_experiment() -> Experiment:
         model_factory_initializer=XgbFactoryInitializer(), 
         mask_factory_initializer=fixed_alpha_mask_factory_initializer(upper_bound=0.2),
         in_memory=False,
-        snr_n_models=50,
-        snr_n_passes=50,
+        snr_n_models=30,
+        snr_n_passes=1000,
         snr_random_generator=RandomGeneratorSNR, 
         tc_random_generator=RandomGeneratorTC,
         path="./results/",
-        experiment_name="gtex_subset_experiment"
+        experiment_name="gtex_subset_experiment",
+        stopping_condition=SNRPrecisionStopping(tolerance=0.05)
     )
 
 def random_dataset_experiment() -> Experiment:

@@ -126,7 +126,7 @@ def run_training_batch(args: TrainClassifiersArgs):
     storage = _make_storage(args, ds)
     _call_storage_warning(storage.masks.shape[0], args.n_models)
 
-    for i, mask in tqdm(enumerate(storage.masks)):
+    for i, mask in enumerate(storage.masks):
         if storage.is_filled(i):
             continue
 

@@ -19,6 +19,7 @@ from ..models            import ModelFactoryInitializer
 from ..utils.scoring     import compute_signal_noise
 from ..utils.configs     import write_chz_class_to_json, append_float_ndjson
 from .train_classifiers  import TrainClassifiersArgs, run_training_batch
+from .stopping_condition import StoppingConditionInterface
 
 @chz.chz
 class ComputeSNRArgs:
@@ -50,6 +51,7 @@ class ComputeSNRArgs:
     mask_factory: MaskFactory
     model_factory: ModelFactory
     random_generator: RandomGeneratorSNRInterface
+    stopping_condition: StoppingConditionInterface
 
     n_models: int  = 20           # train-split count
     n_passes: int  = 15           # model re-initialisations per split
@@ -85,7 +87,8 @@ class ComputeSNRArgsMultipleArchitectures:
     model_factory_initializer: ModelFactoryInitializer
     mask_factory_initializer: MaskFactoryInitializer
     random_generator: Type[RandomGeneratorSNRInterface]
-    
+    stopping_condition: StoppingConditionInterface
+
     n_models: int
     n_passes: int
     in_memory: bool
@@ -120,9 +123,10 @@ def _mk_snr_args(args: ComputeSNRArgsMultipleArchitectures, mask_factory: MaskFa
                          in_memory=args.in_memory, 
                          n_models=args.n_models, 
                          n_passes=args.n_passes, 
-                         random_generator=args.random_generator)
+                         random_generator=args.random_generator,
+                         stopping_condition=args.stopping_condition)
 
-def compute_snr_for_one_architecture(args: ComputeSNRArgs) -> tuple[np.ndarray, float]:
+def snr_inputs_for_one_architecture(args: ComputeSNRArgs) -> tuple[np.ndarray, float]:
     """
     Compute the signal-to-noise ratio (SNR) for a given ModelFactory and MaskFactory for each held-out sample.
 
@@ -143,19 +147,24 @@ def compute_snr_for_one_architecture(args: ComputeSNRArgs) -> tuple[np.ndarray, 
         Average test accuracy over all masks and all passes.
     """
     n_samples = args.dataset.num_samples
-    masks    = np.empty((args.n_models, n_samples, args.n_passes), dtype=bool)
-    margins  = np.empty((args.n_models, n_samples, args.n_passes), dtype=np.float32)
+    masks    = np.empty((args.n_passes, args.n_models, n_samples), dtype=bool)
+    margins  = np.empty((args.n_passes, args.n_models, n_samples), dtype=np.float32)
     accur    = np.empty(args.n_passes, dtype=np.float32)
     train_args = _mk_train_args(args)
 
-    for p in range(args.n_passes):
+    for p in tqdm(range(args.n_passes), desc="Passes"):
         out   = run_training_batch(train_args)
-        masks[:, :, p]  = out.masks
-        margins[:, :, p]= out.margins
-        accur[p]        = out.test_accuracies.mean()
+        masks[p]   = out.masks
+        margins[p] = out.margins
+        accur[p]   = out.test_accuracies.mean()
 
-    snr = compute_signal_noise(margins, masks)
-    return snr, accur.mean()
+        if p>0 and p%50 == 0:
+            print(f"Checking stopping condition at pass {p}")
+            if args.stopping_condition.evaluate_stopping(margins[:p], masks[:p]):
+                print(f"Stopping condition met at pass {p}")
+                return margins[:p], masks[:p], np.mean(accur[:p])
+    
+    return margins[:p], masks[:p], np.mean(accur[:p])
 
 def compute_snr_for_multiple_architectures(args: ComputeSNRArgsMultipleArchitectures) -> np.ndarray:
     """
@@ -175,10 +184,14 @@ def compute_snr_for_multiple_architectures(args: ComputeSNRArgsMultipleArchitect
     snr_out = _mk_snr_out(args)
     n_architectures = snr_out.shape[0]
 
-    for i in tqdm(range(n_architectures)):
+    print(f"Batch {args.random_generator.batch_starter_seed}:")
+
+    for i in range(n_architectures):
+        print(f"Computing signal-to-noise ratio for architecture {i}", end="\n" + "-"*len(f"Computing signal-to-noise ratio for architecture {i}") + "\n")
         new_mask_factory = args.mask_factory_initializer.build_mask_factory(args.random_generator.mask_factory_seed)
         new_model_factory = args.model_factory_initializer.build_model_factory(args.random_generator.model_factory_seed)
-        snr, test_accuracy = compute_snr_for_one_architecture(_mk_snr_args(args, new_mask_factory, new_model_factory))
+        margins, masks, test_accuracy = snr_inputs_for_one_architecture(_mk_snr_args(args, new_mask_factory, new_model_factory))
+        snr = compute_signal_noise(margins, masks)
         snr_out[i] = snr
 
         if not args.in_memory:
@@ -192,4 +205,4 @@ def compute_snr_for_multiple_architectures(args: ComputeSNRArgsMultipleArchitect
         return args.path_to_results
 
 if __name__ == "__main__":
-    chz.nested_entrypoint(compute_snr_for_one_architecture)
+    chz.nested_entrypoint(snr_inputs_for_one_architecture)

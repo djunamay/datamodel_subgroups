@@ -10,6 +10,7 @@ from ..experiments.pipeline_snr import pipeline_snr
 from ..experiments.compute_signal_to_noise import ComputeSNRArgsMultipleArchitectures
 from ..datasamplers.mask_generators import fixed_alpha_mask_factory_initializer
 from ..datasamplers.random_generators import RandomGeneratorSNR, RandomGeneratorTC
+from ..experiments.stopping_condition import SNRPrecisionStopping
 import numpy as np
 
 def test_compute_snr_for_one_architecture():
@@ -25,7 +26,8 @@ def test_compute_snr_for_one_architecture():
             snr_n_models=2, 
             snr_n_passes=2,
             snr_random_generator=RandomGeneratorSNR,
-            tc_random_generator=RandomGeneratorTC)
+            tc_random_generator=RandomGeneratorTC,
+            stopping_condition=SNRPrecisionStopping(tolerance=0.05))
 
     batch_size = 10
 
@@ -39,7 +41,8 @@ def test_compute_snr_for_one_architecture():
                                 path_to_results=experiment.path_to_snr_outputs if not experiment.in_memory else None,
                                 n_architectures=batch_size,
                                 model_factory_initializer=experiment.model_factory_initializer,
-                                mask_factory_initializer=experiment.mask_factory_initializer) 
+                                mask_factory_initializer=experiment.mask_factory_initializer,
+                                stopping_condition=experiment.stopping_condition) 
 
     new_mask_factory = experiment.mask_factory_initializer.build_mask_factory(random_generator.mask_factory_seed)
     new_model_factory = experiment.model_factory_initializer.build_model_factory(random_generator.model_factory_seed)
