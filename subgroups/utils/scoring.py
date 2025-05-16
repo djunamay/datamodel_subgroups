@@ -37,7 +37,7 @@ def compute_margins(probabilities: NDArray[float], labels: NDArray[bool]) -> NDA
     return (labels*2-1)*(np.log(probabilities)-np.log(1-probabilities))
 
 
-def compute_signal_noise(margins: NDArray[float], masks: NDArray[bool]) -> NDArray[float]:
+def compute_signal_noise(margins: NDArray[float], masks: NDArray[bool], ddof: int = 1) -> NDArray[float]:
     r"""
     Compute the signal-to-noise ratio (SNR) for given margins and masks.
 
@@ -70,9 +70,9 @@ def compute_signal_noise(margins: NDArray[float], masks: NDArray[bool]) -> NDArr
         Note that a margin is excluded from the SNR computation for a given sample if that sample was part of the training set used to generate the margin.
     """
     margins_masked = np.ma.array(margins, mask=masks)
-    E_init = np.mean(margins_masked, axis=0)
-    V_init = np.var(margins_masked, axis=0)
-    signal = np.var(np.array(E_init), axis=0) # TODO: should these be masked or not?
-    noise = np.mean(np.array(V_init), axis=0)
-    snr = signal/np.maximum(noise, 1e-12)
-    return np.array(snr)
+    E_init = np.ma.mean(margins_masked, axis=0)
+    V_init = np.ma.var(margins_masked, axis=0, ddof=ddof)
+    signal = np.ma.var(E_init, axis=0, ddof=ddof) 
+    noise = np.ma.mean(V_init, axis=0)
+    snr = signal/np.ma.maximum(noise, 1e-12)
+    return snr.filled(np.nan)

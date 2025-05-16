@@ -100,9 +100,9 @@ class SNRPrecisionStopping(StoppingConditionInterface):
             The shape is (n_models, n_samples)
         """
         margins_masked = np.ma.array(margins, mask=masks)
-        E_init = np.mean(margins_masked, axis=0)
-        V_init = np.var(margins_masked, axis=0)
-        return np.array(E_init), np.array(V_init)
+        E_init = np.ma.mean(margins_masked, axis=0)
+        V_init = np.ma.var(margins_masked, axis=0, ddof=1)
+        return E_init, V_init
     
     @staticmethod
     def _compute_snr(E_init, V_init, axis=0):
@@ -124,14 +124,14 @@ class SNRPrecisionStopping(StoppingConditionInterface):
             The signal-to-noise ratio along the first axis of the input arrays.
             The shape is (n_samples,)
         """
-        signal = np.var(E_init, axis=axis)
-        noise = np.mean(V_init, axis=axis)
-        return signal/np.maximum(noise, 1e-12)
+        signal = np.ma.var(E_init, axis=axis, ddof=1)
+        noise = np.ma.mean(V_init, axis=axis)
+        return signal/np.ma.maximum(noise, 1e-12)
     
     @staticmethod
     def _get_bootstrap_index(E_init, B):
         """
-        Draws B bootstrap sample indices, returning an array of shape (n_models, B)
+        Draws B bootstrap sample indices, returning an array of shape (B, n_models)
         """
         N = E_init.shape[0]
         return np.random.randint(0, N, (B, N))
@@ -142,7 +142,8 @@ class SNRPrecisionStopping(StoppingConditionInterface):
         Compute the 95% confidence interval of the signal-to-noise ratio on the bootstrap samples.
         Input array has shape (B,)
         """
-        lower, upper = np.percentile(bootstrap_storage, lower_bound), np.percentile(bootstrap_storage, upper_bound)
+        valid = bootstrap_storage.compressed() 
+        lower, upper = np.percentile(valid, lower_bound), np.percentile(valid, upper_bound)
         return lower, upper 
     
     @staticmethod
@@ -150,6 +151,23 @@ class SNRPrecisionStopping(StoppingConditionInterface):
         return (upper - lower) / (2 * max(estimate, eps))
     
     def evaluate_stopping(self, margins, masks):
+        """
+        Evaluate the stopping condition.
+        
+        Parameters
+        ----------
+        margins : np.ndarray
+            The margins matrix output by the function compute_snr_for_one_architecture.
+            The shape of the matrix is (n_passes, n_models, n_samples).
+        masks : np.ndarray
+            The masks matrix output by the function compute_snr_for_one_architecture.
+            The shape of the matrix is (n_passes, n_models, n_samples).
+
+        Returns
+        -------
+        bool
+            True if the stopping condition is met, False otherwise.
+        """
         E_init, V_init = self._E_init_V_init(margins, masks) 
         index = self._get_bootstrap_index(E_init, self.B)
         bootstrap_snr = self._compute_snr(E_init[index], V_init[index], axis=1)

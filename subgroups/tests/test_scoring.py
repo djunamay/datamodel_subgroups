@@ -41,12 +41,12 @@ def test_compute_signal_noise():
     For sample 0, the computed SNR should be 4.5 and for sample 1, it should be 2.5.
     """
     margins = np.array([
-        [[1.0, 1.0], [3.0, 2.0]],
-        [[2.0, 3.0], [4.0, 6.0]]
+        [[1.0, 3.0], [2.0, 4.0]],
+        [[1.0, 2.0], [3.0, 6.0]]
     ])
     masks = np.zeros_like(margins, dtype=bool)
     expected = np.array([4.5, 2.5])
-    result = compute_signal_noise(margins, masks)
+    result = compute_signal_noise(margins, masks, ddof=0)
     np.testing.assert_allclose(result, expected)
 
 def test_compute_signal_noise_with_masks():
@@ -57,11 +57,11 @@ def test_compute_signal_noise_with_masks():
     For sample 0, the computed SNR should be 4.5 and for sample 1, it should be 2.
     """
     margins = np.array([
-        [[1.0, 1.0], [3.0, 2.0]],
-        [[2.0, 3.0], [4.0, 6.0]]
+        [[1.0, 3.0], [2.0, 4.0]],
+        [[1.0, 2.0], [3.0, 6.0]]
     ])
     masks = np.zeros_like(margins, dtype=bool)
-    masks[0,1,1] = True
+    masks[1,0,1] = True
     expected = np.array([4.5, 2])
-    result = compute_signal_noise(margins, masks)
+    result = compute_signal_noise(margins, masks, ddof=0)
     np.testing.assert_allclose(result, expected)

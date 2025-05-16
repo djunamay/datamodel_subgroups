@@ -78,7 +78,7 @@ def check_and_write_config(experiment, path_to_config, overwrite: bool=False):
             current_experiment_config = load_experiment_from_json(path_to_tmp_config)
             os.remove(path_to_tmp_config)
             if not deep_equal(previous_experiment_config, current_experiment_config):
-                raise RuntimeError("Experiment config has changed from previous run.\n If this is intentional, set overwrite=True")
+                raise RuntimeError("Experiment config has changed from previous run.\n If this is intentional, set overwrite_config=True")
     else:
         write_chz_class_to_json(experiment, path_to_config)
 

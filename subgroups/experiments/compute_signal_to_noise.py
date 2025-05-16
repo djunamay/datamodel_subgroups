@@ -20,6 +20,7 @@ from ..utils.scoring     import compute_signal_noise
 from ..utils.configs     import write_chz_class_to_json, append_float_ndjson
 from .train_classifiers  import TrainClassifiersArgs, run_training_batch
 from .stopping_condition import StoppingConditionInterface
+from ..experiments.train_classifiers import fit_single_classifier, _make_storage
 
 @chz.chz
 class ComputeSNRArgs:
@@ -149,22 +150,40 @@ def snr_inputs_for_one_architecture(args: ComputeSNRArgs) -> tuple[np.ndarray, f
     n_samples = args.dataset.num_samples
     masks    = np.empty((args.n_passes, args.n_models, n_samples), dtype=bool)
     margins  = np.empty((args.n_passes, args.n_models, n_samples), dtype=np.float32)
-    accur    = np.empty(args.n_passes, dtype=np.float32)
+
+    if args.n_models < 50:
+        bins = [(0, args.n_models)]
+    else:
+        bins = [(i, i + 50) for i in range(0, args.n_models, 50)]
+
     train_args = _mk_train_args(args)
+    storage = _make_storage(train_args, args.dataset)
 
-    for p in tqdm(range(args.n_passes), desc="Passes"):
-        out   = run_training_batch(train_args)
-        masks[p]   = out.masks
-        margins[p] = out.margins
-        accur[p]   = out.test_accuracies.mean()
 
-        if p>0 and p%50 == 0:
-            print(f"Checking stopping condition at pass {p}")
-            if args.stopping_condition.evaluate_stopping(margins[:p], masks[:p]):
-                print(f"Stopping condition met at pass {p}")
-                return margins[:p], masks[:p], np.mean(accur[:p])
-    
-    return margins[:p], masks[:p], np.mean(accur[:p])
+    for bin in bins:
+
+        start, stop = bin
+                
+        for p in tqdm(range(args.n_passes), desc=f"Passes"):
+
+                for i in np.arange(start, stop):
+                    mask = storage.masks[i]
+                    clf   = args.model_factory.build_model(seed=args.random_generator.model_build_seed)
+                    rng_s = args.random_generator.train_data_shuffle_seed
+                    margins_temp, acc = fit_single_classifier(args.dataset.features, args.dataset.coarse_labels, mask, clf, rng_s)
+                    storage.fill_results(i, margins_temp, acc)
+
+                masks[p][start:stop]   = storage.masks[start:stop]
+                margins[p][start:stop] = storage.margins[start:stop]
+
+        print(f"Checking stopping condition after {stop} models")
+        if args.stopping_condition.evaluate_stopping(margins[:,:stop,:], masks[:,:stop,:]):
+            print(f"Stopping condition met after {stop} models")
+            return margins[:,:stop,:], masks[:,:stop,:], storage.test_accuracies.mean()
+        
+    return margins, masks, storage.test_accuracies.mean()
+
+
 
 def compute_snr_for_multiple_architectures(args: ComputeSNRArgsMultipleArchitectures) -> np.ndarray:
     """
@@ -195,9 +214,10 @@ def compute_snr_for_multiple_architectures(args: ComputeSNRArgsMultipleArchitect
         snr_out[i] = snr
 
         if not args.in_memory:
-            write_chz_class_to_json(new_model_factory, os.path.join(args.path_to_results, f"model_factory_{args.random_generator.batch_starter_seed}.json"))
-            write_chz_class_to_json(new_mask_factory, os.path.join(args.path_to_results, f"mask_factory_{args.random_generator.batch_starter_seed}.json"))
+            write_chz_class_to_json(new_model_factory, os.path.join(args.path_to_results, f"model_factory_{args.random_generator.batch_starter_seed}.json"), indent=None)
+            write_chz_class_to_json(new_mask_factory, os.path.join(args.path_to_results, f"mask_factory_{args.random_generator.batch_starter_seed}.json"), indent=None)
             append_float_ndjson(test_accuracy, os.path.join(args.path_to_results, f"test_accuracy_{args.random_generator.batch_starter_seed}.json"))
+            append_float_ndjson(np.mean(snr), os.path.join(args.path_to_results, f"snr_{args.random_generator.batch_starter_seed}.json"))
 
     if args.in_memory:
         return snr_out
