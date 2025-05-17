@@ -23,7 +23,7 @@ def load_experiment_from_json(file_path: str) -> dict:
     return experiment_config
 
 
-def write_chz_class_to_json(obj, file_path: str | os.PathLike, *, indent: int = 2):
+def write_chz_class_to_json(obj, file_path: str | os.PathLike, *, indent: int = 2, append: bool = True):
     """
     Serialize any CHZ object to JSON.
     Non-JSON types are converted like this:
@@ -45,6 +45,8 @@ def write_chz_class_to_json(obj, file_path: str | os.PathLike, *, indent: int = 
         if isinstance(o, type) or callable(o):
             return f"{o.__module__}:{o.__qualname__}"
 
+        if hasattr(o, "__class__") and o.__class__.__module__ != "builtins":
+            return f"{o.__class__.__module__}.{o.__class__.__qualname__}"
         # 4️ any CHZ object -> its pretty repr without colours
         if hasattr(o, "__chz_pretty__"):
             return o.__chz_pretty__(colored=False)
@@ -53,8 +55,13 @@ def write_chz_class_to_json(obj, file_path: str | os.PathLike, *, indent: int = 
         return str(o)
 
     data = chz.beta_to_blueprint_values(obj)          # regular chz → dict conversion
-    with open(file_path, "w") as fp:
+    if os.path.exists(file_path) and append:
+        mode = "a"
+    else:
+        mode = "w"
+    with open(file_path, mode) as fp:
         json.dump(data, fp, default=_fallback, indent=indent)
+        fp.write("\n")
 
 
 def deep_equal(a, b):
@@ -64,12 +71,12 @@ def deep_equal(a, b):
         return len(a) == len(b) and all(deep_equal(x, y) for x, y in zip(a, b))
     return a == b
 
-def check_and_write_config(experiment, path_to_config, overwrite: bool=False):
+def check_and_write_config(experiment, path_to_config, overwrite: bool=False, append: bool=False):
     """
     Check if the experiment config has changed from previous run.
     """
     if overwrite:
-        write_chz_class_to_json(experiment, path_to_config)
+        write_chz_class_to_json(experiment, path_to_config, append=append)
 
     elif os.path.exists(path_to_config):
             previous_experiment_config = load_experiment_from_json(path_to_config)
@@ -78,9 +85,9 @@ def check_and_write_config(experiment, path_to_config, overwrite: bool=False):
             current_experiment_config = load_experiment_from_json(path_to_tmp_config)
             os.remove(path_to_tmp_config)
             if not deep_equal(previous_experiment_config, current_experiment_config):
-                raise RuntimeError("Experiment config has changed from previous run.\n If this is intentional, set overwrite_config=True")
+                raise RuntimeError("Experiment config has changed from previous run. If this is intentional, set overwrite_config=True")
     else:
-        write_chz_class_to_json(experiment, path_to_config)
+        write_chz_class_to_json(experiment, path_to_config, append=append)
 
 def append_chz_ndjson(chz_class, file_path: str):
     """Append one CHZ object as a line of NDJSON."""
