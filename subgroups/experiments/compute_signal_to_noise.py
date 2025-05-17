@@ -179,7 +179,7 @@ def snr_inputs_for_one_architecture(args: ComputeSNRArgs) -> tuple[np.ndarray, f
         print(f"Checking stopping condition after {stop} models")
         if args.stopping_condition.evaluate_stopping(margins[:,:stop,:], masks[:,:stop,:]):
             print(f"Stopping condition met after {stop} models")
-            return margins[:,:stop,:], masks[:,:stop,:], storage.test_accuracies.mean()
+            return margins[:,:stop,:], masks[:,:stop,:], storage.test_accuracies[:stop].mean()
         
     return margins, masks, storage.test_accuracies.mean()
 
