@@ -63,7 +63,7 @@ def _make_storage(args: TrainClassifiersArgs, ds: DatasetInterface) -> MaskMargi
         args.mask_factory,
         args.in_memory,
         args.path,
-        args.random_generator.mask_seed,
+        args.random_generator.batch_starter_seed,
     )
 
 def _call_storage_warning(mask_shape, n_models):
@@ -126,7 +126,7 @@ def run_training_batch(args: TrainClassifiersArgs):
     storage = _make_storage(args, ds)
     _call_storage_warning(storage.masks.shape[0], args.n_models)
 
-    for i, mask in enumerate(storage.masks):
+    for i, mask in tqdm(enumerate(storage.masks), desc='Training classifiers', total=args.n_models):
         if storage.is_filled(i):
             continue
 
