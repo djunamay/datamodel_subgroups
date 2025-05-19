@@ -9,6 +9,7 @@ from ..datasamplers.random_generators import RandomGeneratorSNRInterface, Random
 from ..experiments.stopping_condition import StoppingConditionInterface
 from typing import Type
 from ..datamodels.base import DatamodelsPipelineInterface
+from ..datamodels.indices import IndicesFunction
 
 @chz.chz
 class Experiment:
@@ -58,6 +59,8 @@ class Experiment:
     tc_random_generator: Type[RandomGeneratorTCInterface]=chz.field(default=None, doc='Random generator for TC experiments. Will return independent random seeds for each component of the TC experiment, based on a batch starter seed.')
     stopping_condition: StoppingConditionInterface=chz.field(default=None, doc='Stopping condition for the SNR experiment.')
     datamodels_pipeline: DatamodelsPipelineInterface=chz.field(default=None, doc='Datamodels pipeline for the experiment.')
+    indices_to_fit: IndicesFunction=chz.field(default=None, doc='Indices to fit for the experiment.')
+
     @chz.init_property
     def _check_path(self):
         """

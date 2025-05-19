@@ -8,6 +8,7 @@ from tqdm import tqdm
 from scipy.stats import pearsonr
 from typing import Optional, Union
 from numpy.typing import NDArray
+import glob
 Array = Union[np.ndarray, np.memmap]
 
 @chz.chz
@@ -15,16 +16,74 @@ class DatamodelsPipelineBasic(DatamodelsPipelineInterface):
     path_to_inputs: str
     datamodel_factory: DataModelFactory
     n_train: int
+    n_test: int=None
+
+    @staticmethod
+    def find_files(directory, search_pattern):
+        pattern = f"{directory}/*{search_pattern}.npy"
+        return sorted(glob.glob(pattern))
+
+    @staticmethod
+    def stack_memmap_files(in_paths, out_path):
+        srcs  = [np.lib.format.open_memmap(p, mode="r") for p in in_paths]
+        ref_dtype = srcs[0].dtype
+        total =np.sum([i.shape[0] for i in srcs])
+        out_shape = (int(total), srcs[0].shape[1])
+        out = np.lib.format.open_memmap(out_path,
+                                        mode="w+",
+                                        dtype=ref_dtype,
+                                        shape=out_shape)   
+        offset = 0
+        for arr in srcs:
+            n = arr.shape[0]
+            out[offset:offset+n] = arr.copy()    
+            offset += n
+
+        out._mmap.close() 
+
+    @chz.init_property
+    def _mask_input_paths(self):
+        return self.find_files(self.path_to_inputs, "_masks.npy")
+
+    @chz.init_property
+    def _margins_input_paths(self):
+        return self.find_files(self.path_to_inputs, "_margins.npy")
+
+    @chz.init_property
+    def _batch_order_masks(self):
+        return np.array([int(x.split('_')[-2]) for x in self._mask_input_paths])
+
+    @chz.init_property
+    def _batch_order_margins(self):
+        return np.array([int(x.split('_')[-2]) for x in self._margins_input_paths])
 
     @chz.init_property
     def _masks(self):
-        masks = np.load(os.path.join(self.path_to_inputs, "batch_0_masks.npy"))
-        return masks
+        out_path = os.path.join(self.path_to_inputs, "masks_concatenated.npy")
 
+        if os.path.exists(out_path):
+            return np.load(out_path, mmap_mode="r") if self.n_test is None else np.load(out_path, mmap_mode="r")[:self.n_train+self.n_test]
+        
+        elif np.array_equal(self._batch_order_masks, self._batch_order_margins):
+            self.stack_memmap_files(self._mask_input_paths, out_path)
+            return np.load(out_path, mmap_mode="r") if self.n_test is None else np.load(out_path, mmap_mode="r")[:self.n_train+self.n_test]
+        
+        else:
+            raise ValueError("The number of batches and/or their order are not the same for masks and margins")
+        
     @chz.init_property
     def _margins(self):
-        margins = np.load(os.path.join(self.path_to_inputs, "batch_0_margins.npy"))
-        return margins
+        out_path = os.path.join(self.path_to_inputs, "margins_concatenated.npy")
+
+        if os.path.exists(out_path):
+            return np.load(out_path, mmap_mode="r") if self.n_test is None else np.load(out_path, mmap_mode="r")[:self.n_train+self.n_test]
+        
+        elif np.array_equal(self._batch_order_masks, self._batch_order_margins):
+            self.stack_memmap_files(self._margins_input_paths, out_path)
+            return np.load(out_path, mmap_mode="r") if self.n_test is None else np.load(out_path, mmap_mode="r")[:self.n_train+self.n_test]
+        
+        else:
+            raise ValueError("The number of batches and/or their order are not the same for masks and margins")
     
     @staticmethod
     def _create_array(in_memory: bool, path: Optional[str], dtype: np.dtype, shape: tuple[int, int]) -> Array:

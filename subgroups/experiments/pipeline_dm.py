@@ -19,7 +19,7 @@ def pipeline_dm(experiment: Experiment, batch_starter_seed: int, overwrite_confi
 
     
     dm_out = experiment.datamodels_pipeline.fit_datamodels(indices, rng = np.random.default_rng(batch_starter_seed), 
-                                                           path_to_outputs=experiment.path_to_datamodel_outputs + f"/batch_{batch_starter_seed}", 
+                                                           path_to_outputs=experiment.path_to_datamodel_outputs + f"/batch_{str(batch_starter_seed)}" if not experiment.in_memory else None, 
                                                            in_memory=experiment.in_memory)
     
     if experiment.in_memory:

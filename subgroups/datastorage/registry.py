@@ -10,6 +10,7 @@ from ..experiments.stopping_condition import SNRPrecisionStopping
 from ..utils.pick_best_architecture import return_best_model_architecture
 from ..datamodels.datamodels_pipeline import DatamodelsPipelineBasic
 from ..datamodels.regressor import LassoFactory
+from ..datamodels.indices import SequentialIndices
 import os
 
 def gtex_experiment() -> Experiment:
@@ -51,9 +52,10 @@ def gtex_subset_experiment() -> Experiment:
         path=path,
         experiment_name=name,
         stopping_condition=SNRPrecisionStopping(tolerance=0.1),
+        indices_to_fit=SequentialIndices(batch_size=50),
         datamodels_pipeline=DatamodelsPipelineBasic(n_train=9000, 
                                                     datamodel_factory=LassoFactory(),
-                                                    path_to_inputs=os.path.join(path, name, "classifier_outputs"))
+                                                    path_to_inputs=os.path.join(path, name, "classifier_outputs")),
     )
 
 def random_dataset_experiment() -> Experiment:
