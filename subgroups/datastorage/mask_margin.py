@@ -27,7 +27,7 @@ class MaskMarginStorage(MaskMarginStorageInterface):
         Factory to generate masks.
     in_memory : bool, optional
         Flag to determine if data is stored in memory. Default is True.
-    path : Optional[Path], optional
+    path : Optional[str], optional
         Path for memory-mapped files if not in memory. Default is None.
     mask_seed : Optional[int], optional
         Seed for mask generation, from which random number generator is initialized from which seeds are drawn for each mask. Default is None.
@@ -37,7 +37,7 @@ class MaskMarginStorage(MaskMarginStorageInterface):
     labels: NDArray[bool]
     mask_factory: MaskFactory
     in_memory: bool = True
-    path: Optional[Path] = None   
+    path: Optional[str] = None   
     mask_seed: Optional[int] = None
 
     def __post_init__(self):
@@ -64,7 +64,7 @@ class MaskMarginStorage(MaskMarginStorageInterface):
         ----------
         in_memory : bool
             Flag to determine if the array is stored in memory.
-        path : Optional[Path]
+        path : Optional[str]
             Path for memory-mapped file if not in memory.
         dtype : np.dtype
             Data type of the array.

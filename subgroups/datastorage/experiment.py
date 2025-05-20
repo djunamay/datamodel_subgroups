@@ -53,12 +53,14 @@ class Experiment:
     snr_n_models: int=chz.field(default=20, doc='Number of models to build from ModelFactory. Each model will be trained on a different mask from MaskFactory.')
     snr_n_passes: int=chz.field(default=15, doc='Number of passes over the same mask matrix for the SNR experiment (the number of times ModelFactory.build_model(seed=i) will be called with different seeds).')
     in_memory: bool=chz.field(default=True, doc='Flag indicating if the results to any experiment pipelines run on this experiment object will be stored in memory.')
-    path: Path=chz.field(default=None, doc='Path to store experiment results if not in memory.')
+    path: str=chz.field(default=None, doc='Path to store experiment results if not in memory.')
     experiment_name: str=chz.field(default=None, doc='Name of the experiment if not in memory.')
     snr_random_generator: Type[RandomGeneratorSNRInterface]=chz.field(default=None, doc='Random generator for SNR experiments. Will return independent random seeds for each component of the SNR experiment, based on a batch starter seed.')
     tc_random_generator: Type[RandomGeneratorTCInterface]=chz.field(default=None, doc='Random generator for TC experiments. Will return independent random seeds for each component of the TC experiment, based on a batch starter seed.')
     stopping_condition: StoppingConditionInterface=chz.field(default=None, doc='Stopping condition for the SNR experiment.')
     datamodels_pipeline: DatamodelsPipelineInterface=chz.field(default=None, doc='Datamodels pipeline for the experiment.')
+    dm_n_train: int=chz.field(default=None, doc='Number of training samples for the datamodels pipeline.')
+    dm_n_test: Optional[int]=chz.field(default=None, doc='Number of test samples for the datamodels pipeline.')
     indices_to_fit: IndicesFunction=chz.field(default=None, doc='Indices to fit for the experiment.')
 
     @chz.init_property

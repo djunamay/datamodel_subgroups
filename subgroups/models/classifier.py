@@ -38,7 +38,7 @@ class XgbFactory(ModelFactory):
     subsample: float = chz.field(default=0.8, doc='Subsample ratio for the model')
     colsample_bytree: float = chz.field(default=0.8, doc='Column subsample ratio for the model')
     gamma: float = chz.field(default=0.0, doc='Minimum loss reduction required to make a split')
-    min_child_weight: int = chz.field(default=1, doc='Minimum sum of instance weight (hessian) needed in a child')
+    min_child_weight: float = chz.field(default=1, doc='Minimum sum of instance weight (hessian) needed in a child')
 
     @staticmethod
     def _random_state(seed: int) -> np.random.RandomState:

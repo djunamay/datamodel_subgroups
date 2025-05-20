@@ -28,7 +28,7 @@ def gtex_experiment() -> Experiment:
     )
 
 def gtex_subset_experiment() -> Experiment:
-    path = "./results/"
+    path = "/Users/djuna/Documents/temp/results/"
     name = "gtex_subset_experiment"
     try:
         parameters, alpha = return_best_model_architecture(os.path.join(path, name, "snr_outputs"))
@@ -53,8 +53,9 @@ def gtex_subset_experiment() -> Experiment:
         experiment_name=name,
         stopping_condition=SNRPrecisionStopping(tolerance=0.1),
         indices_to_fit=SequentialIndices(batch_size=50),
-        datamodels_pipeline=DatamodelsPipelineBasic(n_train=9000, 
-                                                    datamodel_factory=LassoFactory(),
+        dm_n_train=9000,
+        dm_n_test=1000,
+        datamodels_pipeline=DatamodelsPipelineBasic(datamodel_factory=LassoFactory(),
                                                     path_to_inputs=os.path.join(path, name, "classifier_outputs")),
     )
 

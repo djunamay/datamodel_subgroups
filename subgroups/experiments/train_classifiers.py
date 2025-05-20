@@ -52,7 +52,7 @@ class TrainClassifiersArgs:
     model_factory: ModelFactory = chz.field(default=None, doc='Factory for creating models. This will be used for training the classifier.')
     n_models: int = chz.field(default=None, doc='Number of models to build from ModelFactory. Each model will be trained on a different mask from MaskFactory.')
     in_memory: bool = chz.field(default=True, doc='Flag indicating whether to store results in memory.')
-    path: Optional[Path] = chz.field(default=None, doc='Path for storing results if not in memory.')
+    path: Optional[str] = chz.field(default=None, doc='Path for storing results if not in memory.')
     random_generator: RandomGeneratorTCInterface = chz.field(default=None, doc='Random generator for training the classifier.')
 
 def _make_storage(args: TrainClassifiersArgs, ds: DatasetInterface) -> MaskMarginStorageInterface:

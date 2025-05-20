@@ -1,13 +1,14 @@
 from typing import List
+import chz
 
+@chz.chz
 class IndicesFunction:
     def __call__(self, batch_starter_seed: int) -> List[int]:
         ...
 
-
+@chz.chz
 class SequentialIndices(IndicesFunction):
-    def __init__(self, batch_size: int):
-        self.batch_size = batch_size
+    batch_size: int = chz.field()
 
     def __call__(self, batch_starter_seed: int) -> List[int]:
         start = batch_starter_seed * self.batch_size

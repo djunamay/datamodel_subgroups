@@ -4,19 +4,19 @@ from .regressor import DataModelFactory
 import numpy as np
 import os
 import chz
+from sklearn.utils import shuffle
 from tqdm import tqdm
 from scipy.stats import pearsonr
 from typing import Optional, Union
 from numpy.typing import NDArray
 import glob
+from sklearn.metrics import root_mean_squared_error
 Array = Union[np.ndarray, np.memmap]
 
 @chz.chz
 class DatamodelsPipelineBasic(DatamodelsPipelineInterface):
-    path_to_inputs: str
-    datamodel_factory: DataModelFactory
-    n_train: int
-    n_test: int=None
+    path_to_inputs: str = chz.field()
+    datamodel_factory: DataModelFactory = chz.field()
 
     @staticmethod
     def find_files(directory, search_pattern):
@@ -43,11 +43,11 @@ class DatamodelsPipelineBasic(DatamodelsPipelineInterface):
 
     @chz.init_property
     def _mask_input_paths(self):
-        return self.find_files(self.path_to_inputs, "_masks.npy")
+        return self.find_files(self.path_to_inputs, "masks")
 
     @chz.init_property
     def _margins_input_paths(self):
-        return self.find_files(self.path_to_inputs, "_margins.npy")
+        return self.find_files(self.path_to_inputs, "margins")
 
     @chz.init_property
     def _batch_order_masks(self):
@@ -60,13 +60,13 @@ class DatamodelsPipelineBasic(DatamodelsPipelineInterface):
     @chz.init_property
     def _masks(self):
         out_path = os.path.join(self.path_to_inputs, "masks_concatenated.npy")
-
+        
         if os.path.exists(out_path):
-            return np.load(out_path, mmap_mode="r") if self.n_test is None else np.load(out_path, mmap_mode="r")[:self.n_train+self.n_test]
+            return np.load(out_path, mmap_mode="r") #if self.n_test is None else np.load(out_path, mmap_mode="r")[:self.n_train+self.n_test]
         
         elif np.array_equal(self._batch_order_masks, self._batch_order_margins):
             self.stack_memmap_files(self._mask_input_paths, out_path)
-            return np.load(out_path, mmap_mode="r") if self.n_test is None else np.load(out_path, mmap_mode="r")[:self.n_train+self.n_test]
+            return np.load(out_path, mmap_mode="r") #if self.n_test is None else np.load(out_path, mmap_mode="r")[:self.n_train+self.n_test]
         
         else:
             raise ValueError("The number of batches and/or their order are not the same for masks and margins")
@@ -76,11 +76,11 @@ class DatamodelsPipelineBasic(DatamodelsPipelineInterface):
         out_path = os.path.join(self.path_to_inputs, "margins_concatenated.npy")
 
         if os.path.exists(out_path):
-            return np.load(out_path, mmap_mode="r") if self.n_test is None else np.load(out_path, mmap_mode="r")[:self.n_train+self.n_test]
+            return np.load(out_path, mmap_mode="r") #if self.n_test is None else np.load(out_path, mmap_mode="r")[:self.n_train+self.n_test]
         
         elif np.array_equal(self._batch_order_masks, self._batch_order_margins):
             self.stack_memmap_files(self._margins_input_paths, out_path)
-            return np.load(out_path, mmap_mode="r") if self.n_test is None else np.load(out_path, mmap_mode="r")[:self.n_train+self.n_test]
+            return np.load(out_path, mmap_mode="r") #if self.n_test is None else np.load(out_path, mmap_mode="r")[:self.n_train+self.n_test]
         
         else:
             raise ValueError("The number of batches and/or their order are not the same for masks and margins")
@@ -94,7 +94,7 @@ class DatamodelsPipelineBasic(DatamodelsPipelineInterface):
         ----------
         in_memory : bool
             Flag to determine if the array is stored in memory.
-        path : Optional[Path]
+        path : Optional[str]
             Path for memory-mapped file if not in memory.
         dtype : np.dtype
             Data type of the array.
@@ -121,18 +121,29 @@ class DatamodelsPipelineBasic(DatamodelsPipelineInterface):
         X = self._masks[index]
         return X, y
     
-    def _fit_one_model(self, sample_index: int, seed: int):
+    def _fit_one_model(self, sample_index: int, seed: int, n_train: int, n_test: int):
         X, y = self._get_samples_for_model(sample_index)
+        X, y = shuffle(X, y, random_state=seed)
         model = self.datamodel_factory.build_model(seed=seed)
-        model.fit(X[:self.n_train], y[:self.n_train])
-        y_hat = model.predict(X[self.n_train:])
-        correlation = pearsonr(y[self.n_train:], y_hat)[0]
+        model.fit(X[:n_train], y[:n_train])
+        start = 0
+
+        if n_test is not None:
+            stop = start + n_test
+        else:
+            stop = X.shape[0]
+
+        y_hat = model.predict(X[start:stop])
+        correlation = pearsonr(y[start:stop], y_hat)[0]
+        rmse = root_mean_squared_error(y[start:stop], y_hat)
+        
         return {'weights': model.coef_, 
                 'bias': model.intercept_, 
-                'correlation': correlation}
+                'correlation': correlation,
+                'rmse': rmse}
     
 
-    def fit_datamodels(self, indices, rng, path_to_outputs: str=None, in_memory: bool=True):
+    def fit_datamodels(self, indices, rng, n_train, n_test: int=None, path_to_outputs: str=None, in_memory: bool=True):
 
         weights = self._create_array(in_memory, None if in_memory else path_to_outputs + "_weights.npy",
             np.float32, (len(indices), self._masks.shape[1])
@@ -143,18 +154,23 @@ class DatamodelsPipelineBasic(DatamodelsPipelineInterface):
         correlations = self._create_array(in_memory, None if in_memory else path_to_outputs + "_correlations.npy",
             np.float32, (len(indices),)
         )
-        for i in tqdm(indices):
+        rmse = self._create_array(in_memory, None if in_memory else path_to_outputs + "_rmse.npy",
+            np.float32, (len(indices),)
+        )
+        for i, sample_index in tqdm(enumerate(indices), total=len(indices)):
             if not correlations[i]==0:
                 continue
-            model = self._fit_one_model(i, rng.integers(0, 2**32 - 1))
+            model = self._fit_one_model(sample_index, rng.integers(0, 2**32 - 1), n_train, n_test)
             weights[i] = model['weights']
             biases[i] = model['bias']
             correlations[i] = model['correlation']
+            rmse[i] = model['rmse']
 
         if in_memory:
             return {'weights': weights, 
                     'biases': biases, 
-                    'correlations': correlations}
+                    'correlations': correlations,
+                    'rmse': rmse}
         else:
             return path_to_outputs
 

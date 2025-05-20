@@ -95,7 +95,7 @@ def append_chz_ndjson(chz_class, file_path: str):
         json.dump(chz.asdict(chz_class), f)
         f.write("\n")     
 
-def append_float_ndjson(value: float, file_path: str) -> None:
+def append_float_ndjson(value: float, file_path: Path) -> None:
     """
     Append a float to an NDJSON file.  Every call writes **one** JSON value
     followed by a newline, so the file can be streamed line-by-line later.
