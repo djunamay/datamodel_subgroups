@@ -56,7 +56,8 @@ def gtex_subset_experiment() -> Experiment:
         dm_n_train=9000,
         dm_n_test=1000,
         datamodels_pipeline=DatamodelsPipelineBasic(datamodel_factory=LassoFactory(),
-                                                    path_to_inputs=os.path.join(path, name, "classifier_outputs")),
+                                                    path_to_inputs=os.path.join(path, name, "classifier_outputs"),
+                                                    path_to_outputs=os.path.join(path, name, "datamodel_outputs")),
     )
 
 def random_dataset_experiment() -> Experiment:

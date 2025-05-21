@@ -5,7 +5,8 @@ from ..utils.scoring import compute_signal_noise
 
 class StoppingConditionInterface(ABC):
     """
-    Stopping condition interface. A class that implements this interface takes as input the masks and margins returned by the function compute_snr_for_one_architecture and returns a boolean value indicating whether the stopping condition is met.
+    Stopping condition interface. A class that implements this interface takes as input the masks and margins returned 
+    by the function compute_snr_for_one_architecture and returns a boolean value indicating whether the stopping condition is met.
     """
 
     @abstractmethod
@@ -30,7 +31,7 @@ class StoppingConditionInterface(ABC):
         ...
 
 class SNRPrecisionStopping(StoppingConditionInterface):
-    """
+    r"""
     Stop when the mean-SNR estimate is precise to ± `tolerance` %.
 
     Procedure
@@ -57,19 +58,29 @@ class SNRPrecisionStopping(StoppingConditionInterface):
 
            hw_rel <= tolerance/100            # e.g. 0.05 for ±5 %
 
-    Notes
-    -----
-    * The denominator is the plug-in estimate `snr_hat`, not the
-      mean of the bootstrap replicates.
-    * The rule guarantees that, with ≈95 % coverage, the true SNR
-      lies within ± `tolerance` % of `snr_hat`.
-
     Attributes
     ----------
     B : int
         Number of bootstrap samples.
     tolerance : float
         Tolerance for the stopping condition.
+
+    Notes
+    -----
+    * The denominator is the plug-in estimate ``snr_hat``, not the
+    mean of the bootstrap replicates.
+    * The rule guarantees that, with ≈95 % coverage, the true SNR
+    lies within ±``tolerance`` % of ``snr_hat``.
+    * The bootstrap percentile interval does **not** correct the
+    bias in the SNR estimator itself (even though you use ``ddof=1``
+    to get unbiased variance estimates). We recommend at least
+    n_passes\(\ge50\) initializations (and use the same n_passes for every
+    architecture).  Since our goal is **ranking** architectures by
+    their SNR, a small, consistent bias won't affect the ordering.
+    The user can compare the bias estimates to verify this.
+    For example, check that the range of bias estimates is 
+    smaller than the difference between the SNR estimates you are considering.
+
     """
 
     def __init__(self, B=1000, tolerance=0.01):
@@ -175,121 +186,8 @@ class SNRPrecisionStopping(StoppingConditionInterface):
         lower, upper = self._confidence_interval(population_bootstrap_snr)
         snr_hat = np.mean(self._compute_snr(E_init, V_init))
         relative_precision = self._relative_precision(lower, upper, snr_hat)
-
+        bias_estimate = np.mean(population_bootstrap_snr) - snr_hat
         print(f"The 95% CI of the SNR estimate is {np.round(snr_hat, 3)} ± {np.round(relative_precision*100, 3)} %")
-
+        print(f"The bootstrap estimate of the bias of the SNR estimate is {np.round(bias_estimate, 3)}")
         return relative_precision<self.tolerance
-    
-# class SNRPrecisionStopping(StoppingConditionInterface):
-#     """
-#     Stop when the mean-SNR estimate is precise to ± `tolerance` %.
-
-#     Procedure
-#     ---------
-#     1. **Point estimate**
-#        Compute a single plug-in estimate
-
-#            snr_hat = np.mean(compute_signal_noise(margins, masks))
-
-#        where *margins* has shape (n_models, n_samples, n_passes) and each row `i`
-#        represents one training-subset used in a given model.
-
-#     2. **Bootstrap sampling**
-#        Draw *B* bootstrap replicates by resampling the **Y rows**
-#        with replacement; for each replicate recompute the population-level SNR as above.
-#        The 2.5 % and 97.5 % empirical quantiles give a 95 %
-#        confidence interval, `[lower, upper]`.
-
-#     3. **Stopping rule**
-#        Let the relative half-width be
-
-#            hw_rel = (upper - lower) / (2 * abs(snr_hat))
-
-#        Stop (return `True`) when
-
-#            hw_rel <= tolerance/100            # e.g. 0.05 for ±5 %
-
-#     Notes
-#     -----
-#     * The denominator is the plug-in estimate `snr_hat`, not the
-#       mean of the bootstrap replicates.
-#     * The rule guarantees that, with ≈95 % coverage, the true SNR
-#       lies within ± `tolerance` % of `snr_hat`.
-
-#     Attributes
-#     ----------
-#     B : int
-#         Number of bootstrap samples.
-#     tolerance : float
-#         Tolerance for the stopping condition.
-#     """
-#     def __init__(self, B=1000, tolerance=0.01):
-#         self.B = B
-#         self.tolerance = tolerance
-
-#     @staticmethod
-#     def _snr_estimate(margins, masks):
-#         """
-#         Compute the point estimate of the signal-to-noise ratio on the full margins and masks.
-#         """
-#         return compute_signal_noise(margins, masks)
-    
-#     @staticmethod
-#     def _single_bootstrap(margins, masks):
-#         """
-#         Performs a single boostrap resampling of the margins and masks by sampling with replacement N indices from the range [0, N) (N = margins.shape[0]).
-#         The signal-to-noise ratio is computed on the resampled margins and masks using the function compute_signal_noise.
-
-#         Parameters
-#         ----------
-#         margins : np.ndarray 
-#             The margins matrix output by the function compute_snr_for_one_architecture.
-#             The shape of the matrix is (n_models, n_samples, n_passes).
-#         masks : np.ndarray
-#             The masks matrix output by the function compute_snr_for_one_architecture.
-#             The shape of the matrix is (n_models, n_samples, n_passes).
-
-#         Returns
-#         -------
-#         snr_hat : float
-#             The signal-to-noise ratio of the resampled margins and masks averaged over n_samples.
-#         """
-#         N = margins.shape[0]
-#         index = np.random.randint(0, N, N)
-#         snr_hat = compute_signal_noise(margins[index], masks[index])
-#         return np.mean(snr_hat)
-    
-#     @staticmethod
-#     def _confidence_interval(bootstrap_storage, lower_bound=2.5, upper_bound=97.5):
-#         """
-#         Compute the 95% confidence interval of the signal-to-noise ratio on the bootstrap samples.
-#         """
-#         lower, upper = np.percentile(bootstrap_storage, lower_bound), np.percentile(bootstrap_storage, upper_bound)
-#         return lower, upper 
-    
-#     @staticmethod
-#     def _relative_precision(lower, upper, estimate, eps=1e-12):
-#         return (upper - lower) / (2 * max(estimate, eps))
-    
-#     @staticmethod
-#     def _decision_boundary(relative_precision, tolerance):
-#         """
-#         Check if the relative precision of the signal-to-noise ratio on the bootstrap samples is less than the tolerance.
-#         """
-#         return relative_precision<tolerance
-    
-#     def evaluate_stopping(self, margins, masks):
-#         """
-#         Evaluate the stopping condition.
-#         """
-#         snr_estimate = np.mean(self._snr_estimate(margins, masks))
-#         bootstrap_storage = np.zeros((self.B))
-
-#         for i in tqdm(range(self.B)):
-#             bootstrap_storage[i] = self._single_bootstrap(margins, masks)
-        
-#         lower_ci, upper_ci = self._confidence_interval(bootstrap_storage)
-#         print(snr_estimate)
-#         relative_precision = self._relative_precision(lower_ci, upper_ci, snr_estimate)
-#         return self._decision_boundary(relative_precision, self.tolerance), relative_precision*100
     
