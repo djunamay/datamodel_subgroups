@@ -28,7 +28,10 @@ class RandomDataset(DatasetInterface):
 
     @chz.init_property
     def _fine_labels(self):
-        return self.rng.random(self.n_samples) > 0.5
+        empty = np.zeros(self.n_samples)
+        empty[self.coarse_labels] = self.rng.integers(0, 3, np.sum(self.coarse_labels))
+        empty[~self.coarse_labels] = self.rng.integers(3, 6, np.sum(~self.coarse_labels))
+        return empty
 
     @chz.init_property
     def _descriptive_data(self):
