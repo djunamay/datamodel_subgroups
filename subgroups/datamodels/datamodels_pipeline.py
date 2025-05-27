@@ -283,6 +283,7 @@ class DatamodelsPipelineBasic(DatamodelsPipelineInterface):
                     'correlations': correlations,
                     'rmse': rmse}
         else:
+            np.save(os.path.join(self.path_to_outputs, f"batch_{seed}_sample_indices.npy"), indices, allow_pickle=False)
             return self.path_to_outputs
 
         
