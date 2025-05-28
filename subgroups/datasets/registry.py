@@ -1,4 +1,5 @@
 from .gtex import GTEXDataset
+from .ace import AceDataset
 
 def gtex() -> GTEXDataset:
     """
@@ -23,4 +24,10 @@ def gtex_subset() -> GTEXDataset:
         path_to_sample_metadata='/Users/djuna/Documents/subgroups_data/gtex/GTEx_Analysis_v10_Annotations_SubjectPhenotypesDS.txt',
         predicted_class='Esophagus',
         n_components=5
+    )
+
+def ace() -> AceDataset:
+    return AceDataset(
+        path_to_data = '/home/Genomica/03-Collabs/data/202112_Somascan_harpone_csf_plasma/202112_Somascan_harpone_db_CSF_ACE_n1370.txt',
+        path_to_meta_data = '/home/Genomica/03-Collabs/djuna/clinical_data_ACE/202406_shared_clinicaldb_CSF_ACE_n1370.txt'
     )
