@@ -26,7 +26,7 @@ def gtex_subset() -> GTEXDataset:
         n_components=5
     )
 
-def ace() -> AceDataset:
+def ace_csf_proteomics() -> AceDataset:
     return AceDataset(
         path_to_data = '/home/Genomica/03-Collabs/data/202112_Somascan_harpone_csf_plasma/202112_Somascan_harpone_db_CSF_ACE_n1370.txt',
         path_to_meta_data = '/home/Genomica/03-Collabs/djuna/clinical_data_ACE/202406_shared_clinicaldb_CSF_ACE_n1370.txt'

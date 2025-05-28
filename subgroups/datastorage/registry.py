@@ -1,4 +1,4 @@
-from ..datasets.registry import gtex, gtex_subset
+from ..datasets.registry import gtex, gtex_subset, ace_csf_proteomics
 from ..datasets.test_data import RandomDataset
 from ..datasamplers.mask_generators import fixed_alpha_mask_factory
 from ..models.classifier import XgbFactory
@@ -72,3 +72,36 @@ def random_dataset_experiment() -> Experiment:
            snr_random_generator=RandomGeneratorSNR, 
            tc_random_generator=RandomGeneratorTC,
            )
+
+def ace_csf_proteomics_experiment() -> Experiment:
+    path = "/home/Genomica/03-Collabs/djuna/results/"
+    name = "ace_csf_proteomics_experiment"
+    try:
+        parameters, alpha = return_best_model_architecture(os.path.join(path, name, "snr_outputs"))
+        mask_factory = fixed_alpha_mask_factory(**alpha)
+        model_factory = XgbFactory(**parameters)
+    except ValueError:
+        mask_factory = fixed_alpha_mask_factory(alpha=0.01)
+        model_factory = XgbFactory()
+
+    return Experiment(
+        dataset=ace_csf_proteomics(),
+        mask_factory=mask_factory,
+        model_factory=model_factory,
+        model_factory_initializer=XgbFactoryInitializer(), 
+        mask_factory_initializer=fixed_alpha_mask_factory_initializer(upper_bound=0.2),
+        in_memory=False,
+        snr_n_models=1000,
+        snr_n_passes=10,
+        snr_random_generator=RandomGeneratorSNR, 
+        tc_random_generator=RandomGeneratorTC,
+        path=path,
+        experiment_name=name,
+        stopping_condition=SNRPrecisionStopping(tolerance=0.1),
+        indices_to_fit=SequentialIndices(batch_size=50),
+        dm_n_train=9000,
+        dm_n_test=1000,
+        datamodels_pipeline=DatamodelsPipelineBasic(datamodel_factory=LassoFactory(),
+                                                    path_to_inputs=os.path.join(path, name, "classifier_outputs"),
+                                                    path_to_outputs=os.path.join(path, name, "datamodel_outputs")),
+    )
