@@ -3,6 +3,8 @@ import pandas as pd
 from .base import BaseDataset  
 import chz  
 from numpy.typing import NDArray
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
 
 @chz.chz
 class AceDataset(BaseDataset):
@@ -78,7 +80,30 @@ class AceDataset(BaseDataset):
         if (reference_date.month, reference_date.day) < (birth_date.month, birth_date.day):
             age -= 1
         return age
+    
+    @staticmethod
+    def _reduce_dimensionality(array: NDArray[float], n_components: int = 50) -> NDArray[float]:
+        """
+        Reduce the dimensionality of the given array using PCA.
 
+        Parameters
+        ----------
+        array : NDArray[float]
+            The data array to be reduced.
+        n_components : int, optional
+            Number of components for PCA. Default is 50.
+
+        Returns
+        -------
+        NDArray[float]
+            The array with reduced dimensionality.
+        """
+        scaler = StandardScaler()
+        scaled_data = scaler.fit_transform(array)
+        pca = PCA(n_components=n_components)
+        projections = pca.fit_transform(scaled_data)
+        return projections
+    
     @property
     def _descriptive_data(self):
         """
@@ -105,12 +130,12 @@ class AceDataset(BaseDataset):
         ]
         return self._meta_data[vars].to_records(index=False)
 
-    @property
+    @chz.init_property
     def _csf_data(self):
         """
         Filtered CSF data.
         """
-        return self._full_csf_data.loc[self._indices_to_keep].values.astype(float)
+        return self._reduce_dimensionality(self._full_csf_data.loc[self._indices_to_keep].values.astype(float))
 
     @property
     def _meta_data(self):
@@ -131,7 +156,9 @@ class AceDataset(BaseDataset):
         """
         Binary labels indicating dementia status (shape: [n_samples]).
         """
-        return (self._meta_data['syndromic_tag'] == 'dementia').values.astype(bool)
+        #return (self._meta_data['syndromic_tag'] == 'dementia').values.astype(bool)
+        coarse_labels = [x in set([130100.0, 130200.0, 130400.0]) for x in self._meta_data['diagnostic_primary_csf']] # amnestic vs non-amnestic split recommended by Diane Chan
+        return np.array(coarse_labels, dtype=bool)
     
     @property
     def fine_labels(self) -> NDArray[bool]:
