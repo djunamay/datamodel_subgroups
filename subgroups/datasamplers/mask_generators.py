@@ -53,6 +53,16 @@ class fixed_alpha_mask_factory(MaskFactory):
         samples_per_class = int((len(labels) * self.alpha) / 2)
         indices_class_0 = np.where(~labels)[0]
         indices_class_1 = np.where(labels)[0]
+
+        # sanity check
+        min_class_size = min(len(indices_class_0), len(indices_class_1))
+        if samples_per_class > min_class_size:
+            raise ValueError(
+                f"Cannot sample {samples_per_class} per class: "
+                f"only {len(indices_class_1)} positives and "
+                f"{len(indices_class_0)} negatives available."
+            )
+    
         mask = np.zeros(len(labels), dtype=bool)
         mask[self._rng(seed).permutation(indices_class_1)[:samples_per_class]] = True
         mask[self._rng(seed).permutation(indices_class_0)[:samples_per_class]] = True
