@@ -55,7 +55,7 @@ def return_snr_data(directory):
     data = np.concatenate([batch.reshape(-1,1), snrs.reshape(-1,1)], axis=1)
     return data
 
-def return_best_model_architecture(directory, acc_cutoff=0.8):
+def return_best_model_index(directory, acc_cutoff=0.8):
     acc_paths = find_test_accuracy_files(directory)
     snr_paths = find_snr_files(directory)
     test_accuracy_data = np.concatenate([return_test_accuracy_data(path) for path in acc_paths])
@@ -64,6 +64,19 @@ def return_best_model_architecture(directory, acc_cutoff=0.8):
     best_model_index = index[np.argmax(snr_data[index][:,1])]
     best_model_batch = snr_data[:,0][best_model_index]
     best_model_index_in_batch = np.argmax(snr_data[best_model_batch==snr_data[:,0]][:,1])
+    return int(best_model_batch), int(best_model_index_in_batch)
+
+def return_best_model_architecture(directory, acc_cutoff=0.8):
+    best_model_batch, best_model_index_in_batch = return_best_model_index(directory, acc_cutoff)
     best_model_architecture = load_model_architecture_at_index(directory + f'/model_factory_{int(best_model_batch)}.json', best_model_index_in_batch)
     best_alpha = load_model_architecture_at_index(directory + f'/mask_factory_{int(best_model_batch)}.json', best_model_index_in_batch)
     return best_model_architecture, best_alpha
+
+def return_best_model_test_accuracy(directory, best_model_batch, best_model_index_in_batch):
+    best_test_accuracy = load_json_numbers_as_array(directory + f'/test_accuracy_{int(best_model_batch)}.json')[best_model_index_in_batch]
+    return best_test_accuracy
+
+def return_best_model_snr(directory, best_model_batch, best_model_index_in_batch):
+    best_snr = load_json_numbers_as_array(directory + f'/snr_{int(best_model_batch)}.json')[best_model_index_in_batch]
+    return best_snr
+
