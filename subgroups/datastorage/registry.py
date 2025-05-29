@@ -73,7 +73,7 @@ def random_dataset_experiment() -> Experiment:
            tc_random_generator=RandomGeneratorTC,
            )
 
-def ace_csf_proteomics_experiment() -> Experiment:
+def ace_csf_proteomics_experiment() -> Experiment: # TODO: The overwrite config doesn't work well when running the snr pipeline as independent batches with different seeds - Need to set overwrite to True then since the best model architecture can change over time. Fix this config issue.
     path = "/home/Genomica/03-Collabs/djuna/results/"
     name = "ace_csf_proteomics_experiment"
     try:

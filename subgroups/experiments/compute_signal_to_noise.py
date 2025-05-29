@@ -179,7 +179,7 @@ def snr_inputs_for_one_architecture(args: ComputeSNRArgs) -> tuple[np.ndarray, f
         print(f"Checking stopping condition after {stop} models")
         if args.stopping_condition.evaluate_stopping(margins[:,:stop,:], masks[:,:stop,:]):
             print(f"Stopping condition met after {stop} models")
-            return margins[:,:stop,:], masks[:,:stop,:], storage.test_accuracies[:stop].mean()
+            return margins[:,:stop,:], masks[:,:stop,:], storage.test_accuracies[:stop].mean() # TODO: test_accuracy is only averaged over 50 masks (1 bin - i.e. last storage). Might want to increase this to get a better estimate.
         
     return margins, masks, storage.test_accuracies.mean()
 
@@ -217,7 +217,7 @@ def compute_snr_for_multiple_architectures(args: ComputeSNRArgsMultipleArchitect
             write_chz_class_to_json(new_model_factory, os.path.join(args.path_to_results, f"model_factory_{args.random_generator.batch_starter_seed}.json"), indent=None)
             write_chz_class_to_json(new_mask_factory, os.path.join(args.path_to_results, f"mask_factory_{args.random_generator.batch_starter_seed}.json"), indent=None)
             append_float_ndjson(test_accuracy, os.path.join(args.path_to_results, f"test_accuracy_{args.random_generator.batch_starter_seed}.json"))
-            append_float_ndjson(np.mean(snr), os.path.join(args.path_to_results, f"snr_{args.random_generator.batch_starter_seed}.json"))
+            append_float_ndjson(np.nanmean(snr), os.path.join(args.path_to_results, f"snr_{args.random_generator.batch_starter_seed}.json")) # TODO: I think nan values occur when the masks are propagated -> check this and see if it's ok... 
 
     if args.in_memory:
         return snr_out
