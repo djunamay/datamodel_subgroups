@@ -56,14 +56,26 @@ def return_snr_data(directory):
     return data
 
 def return_best_model_index(directory, acc_cutoff=0.8):
+    # load all data
     acc_paths = find_test_accuracy_files(directory)
     snr_paths = find_snr_files(directory)
     test_accuracy_data = np.concatenate([return_test_accuracy_data(path) for path in acc_paths])
     snr_data = np.concatenate([return_snr_data(path) for path in snr_paths])
+
+    # get indices for models with test accuracy > cutoff
     index = np.argwhere(test_accuracy_data[:,1]>acc_cutoff).reshape(-1)
-    best_model_index = index[np.argmax(snr_data[index][:,1])]
+
+    # of these indices, get the one with the highest SNR
+    snr_values = snr_data[index][:,1]
+    best_snr = np.max(snr_values)
+
+    if best_snr == 0:
+        raise ValueError("Max SNR at this accuracy cutoff is 0. Don't proceed with this model.")
+    best_model_index = index[np.argmax(snr_values)]
+
+    # get the batch that this model is in
     best_model_batch = snr_data[:,0][best_model_index]
-    best_model_index_in_batch = np.argmax(snr_data[best_model_batch==snr_data[:,0]][:,1])
+    best_model_index_in_batch = np.where(snr_data[snr_data[:,0]==best_model_batch][:,1]==best_snr)[0]
     return int(best_model_batch), int(best_model_index_in_batch)
 
 def return_best_model_architecture(directory, acc_cutoff=0.8):
