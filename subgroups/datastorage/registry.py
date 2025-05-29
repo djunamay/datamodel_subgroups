@@ -89,7 +89,7 @@ def ace_csf_proteomics_experiment() -> Experiment: # TODO: The overwrite config 
         mask_factory=mask_factory,
         model_factory=model_factory,
         model_factory_initializer=XgbFactoryInitializer(), 
-        mask_factory_initializer=fixed_alpha_mask_factory_initializer(upper_bound=0.75),
+        mask_factory_initializer=fixed_alpha_mask_factory_initializer(upper_bound=0.3), # this upper bound ensures at maximum 70% sampling of the smaller class for training
         in_memory=False,
         snr_n_models=1000,
         snr_n_passes=50,
