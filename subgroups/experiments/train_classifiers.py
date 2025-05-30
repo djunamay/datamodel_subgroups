@@ -18,7 +18,7 @@ from ..utils.scoring import compute_margins
 from ..datastorage.mask_margin import MaskMarginStorage
 from ..datastorage.base import MaskMarginStorageInterface
 import chz
-
+from sklearn.model_selection import train_test_split
 
 @chz.chz
 class TrainClassifiersArgs:
@@ -102,13 +102,9 @@ def fit_single_classifier(features: NDArray[np.float32], labels: NDArray[bool], 
     """
     features_shuffled, labels_shuffled = shuffle(features[mask], labels[mask], random_state=shuffle_seed) 
     model.fit(features_shuffled, labels_shuffled) 
-
-    # balance the test data by label
-    test_labels, test_features = labels[~mask], features[~mask]
-    samples_per_class = min(test_labels.sum(), (~test_labels).sum())
-    indices = np.random.choice(len(test_labels), samples_per_class, replace=False)
-
-    test_accuracy = model.score(test_features[indices], test_labels[indices])
+    tl, tf = labels[~mask], features[~mask]
+    _, test_features, _, test_labels  = train_test_split(tf, tl, stratify=tl, test_size=min(tl.sum(), (~tl).sum()), random_state=2) # balance the test data by label
+    test_accuracy = model.score(test_features, test_labels)
     margins = compute_margins(model.predict_proba(features)[:,1], labels)
     return margins, test_accuracy
 
