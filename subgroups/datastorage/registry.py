@@ -77,7 +77,7 @@ def ace_csf_proteomics_experiment() -> Experiment: # TODO: The overwrite config 
     path = "/home/Genomica/03-Collabs/djuna/results/"
     name = "ace_csf_proteomics_experiment"
     try:
-        parameters, alpha = return_best_model_architecture(os.path.join(path, name, "snr_outputs"))
+        parameters, alpha = return_best_model_architecture(os.path.join(path, name, "snr_outputs"), acc_cutoff=0)
         mask_factory = fixed_alpha_mask_factory(**alpha)
         model_factory = XgbFactory(**parameters)
     except ValueError:
