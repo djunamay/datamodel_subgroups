@@ -16,6 +16,7 @@ class fixed_alpha_mask_factory(MaskFactory):
         Default is 0.5.
     """
     alpha: float = chz.field(default=0.5, doc='Proportion of the total dataset to include in the training mask (0 < alpha ≤ 1). Half of these samples are selected from each class to maintain balance.')
+    min_test_fraction: float = chz.field(default=0.3)
 
     @staticmethod
     def _rng(seed: int) -> np.random.Generator:
@@ -54,9 +55,9 @@ class fixed_alpha_mask_factory(MaskFactory):
         indices_class_0 = np.where(~labels)[0]
         indices_class_1 = np.where(labels)[0]
 
-        # sanity check
-        min_class_size = min(len(indices_class_0), len(indices_class_1))
-        if samples_per_class > min_class_size:
+        # sanity check 
+        max_class_size = min(len(indices_class_0), len(indices_class_1))
+        if samples_per_class > (max_class_size * (1 - self.min_test_fraction)):
             raise ValueError(
                 f"Cannot sample {samples_per_class} per class: "
                 f"only {len(indices_class_1)} positives and "
