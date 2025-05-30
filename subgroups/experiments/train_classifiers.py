@@ -102,7 +102,13 @@ def fit_single_classifier(features: NDArray[np.float32], labels: NDArray[bool], 
     """
     features_shuffled, labels_shuffled = shuffle(features[mask], labels[mask], random_state=shuffle_seed) 
     model.fit(features_shuffled, labels_shuffled) 
-    test_accuracy = model.score(features[~mask], labels[~mask])
+
+    # balance the test data by label
+    test_labels, test_features = labels[~mask], features[~mask]
+    samples_per_class = min(test_labels.sum(), (~test_labels).sum())
+    indices = np.random.choice(len(test_labels), samples_per_class, replace=False)
+
+    test_accuracy = model.score(test_features[indices], test_labels[indices])
     margins = compute_margins(model.predict_proba(features)[:,1], labels)
     return margins, test_accuracy
 
