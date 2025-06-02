@@ -217,7 +217,7 @@ def compute_snr_for_multiple_architectures(args: ComputeSNRArgsMultipleArchitect
             write_chz_class_to_json(new_model_factory, os.path.join(args.path_to_results, f"model_factory_{args.random_generator.batch_starter_seed}.json"), indent=None)
             write_chz_class_to_json(new_mask_factory, os.path.join(args.path_to_results, f"mask_factory_{args.random_generator.batch_starter_seed}.json"), indent=None)
             append_float_ndjson(test_accuracy, os.path.join(args.path_to_results, f"test_accuracy_{args.random_generator.batch_starter_seed}.json"))
-            append_float_ndjson(np.nanmean(snr), os.path.join(args.path_to_results, f"snr_{args.random_generator.batch_starter_seed}.json")) # TODO: I think nan values occur when the masks are propagated -> check this and see if it's ok... 
+            append_float_ndjson(np.nanmean(snr), os.path.join(args.path_to_results, f"snr_{args.random_generator.batch_starter_seed}.json")) 
 
     if args.in_memory:
         return snr_out

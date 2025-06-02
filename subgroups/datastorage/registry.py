@@ -12,7 +12,7 @@ from ..datamodels.datamodels_pipeline import DatamodelsPipelineBasic
 from ..datamodels.regressor import LassoFactory
 from ..datamodels.indices import SequentialIndices
 import os
-
+from ..datasets.registry import rosmap_singlecell
 def gtex_experiment() -> Experiment:
     return Experiment(
         dataset=gtex(),
@@ -90,6 +90,39 @@ def ace_csf_proteomics_experiment() -> Experiment: # TODO: The overwrite config 
         model_factory=model_factory,
         model_factory_initializer=XgbFactoryInitializer(), 
         mask_factory_initializer=fixed_alpha_mask_factory_initializer(upper_bound=0.3), # this upper bound ensures at maximum 70% sampling of the smaller class for training
+        in_memory=False,
+        snr_n_models=1000,
+        snr_n_passes=50,
+        snr_random_generator=RandomGeneratorSNR, 
+        tc_random_generator=RandomGeneratorTC,
+        path=path,
+        experiment_name=name,
+        stopping_condition=SNRPrecisionStopping(tolerance=0.1),
+        indices_to_fit=SequentialIndices(batch_size=50),
+        dm_n_train=9000,
+        dm_n_test=1000,
+        datamodels_pipeline=DatamodelsPipelineBasic(datamodel_factory=LassoFactory(),
+                                                    path_to_inputs=os.path.join(path, name, "classifier_outputs"),
+                                                    path_to_outputs=os.path.join(path, name, "datamodel_outputs")),
+    )
+
+def rosmap_singlecell_experiment() -> Experiment: # TODO: The overwrite config doesn't work well when running the snr pipeline as independent batches with different seeds - Need to set overwrite to True then since the best model architecture can change over time. Fix this config issue.
+    path = "/Users/djuna/Documents/temp/results/"
+    name = "rosmap_singlecell_experiment"
+    try:
+        parameters, alpha = return_best_model_architecture(os.path.join(path, name, "snr_outputs"), acc_cutoff=0)
+        mask_factory = fixed_alpha_mask_factory(**alpha)
+        model_factory = XgbFactory(**parameters)
+    except ValueError:
+        mask_factory = fixed_alpha_mask_factory(alpha=0.01)
+        model_factory = XgbFactory()
+
+    return Experiment(
+        dataset=rosmap_singlecell(),
+        mask_factory=mask_factory,
+        model_factory=model_factory,
+        model_factory_initializer=XgbFactoryInitializer(), 
+        mask_factory_initializer=fixed_alpha_mask_factory_initializer(upper_bound=0.45), # this upper bound ensures at maximum 70% sampling of the smaller class for training
         in_memory=False,
         snr_n_models=1000,
         snr_n_passes=50,
