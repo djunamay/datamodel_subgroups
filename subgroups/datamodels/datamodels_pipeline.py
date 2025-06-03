@@ -75,7 +75,7 @@ class DatamodelsPipelineBasic(DatamodelsPipelineInterface):
         """
         srcs  = [np.lib.format.open_memmap(p, mode="r") for p in in_paths]
         ref_dtype = srcs[0].dtype
-        total = len(self._model_completed_indices)
+        total = np.sum(self._model_completed_indices)
         out_shape = (int(total), srcs[0].shape[1])
         out = np.lib.format.open_memmap(out_path,
                                         mode="w+",
