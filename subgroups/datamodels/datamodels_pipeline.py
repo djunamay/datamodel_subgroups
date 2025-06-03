@@ -50,9 +50,13 @@ class DatamodelsPipelineBasic(DatamodelsPipelineInterface):
         if os.path.exists(out_path):
             return None
         else:
-            in_paths = self._find_files(self.path_to_inputs, 'test_accuracies')
+            in_paths = self._find_files(self.path_to_inputs, 'masks')
             srcs  = [np.lib.format.open_memmap(p, mode="r") for p in in_paths]
-            return [x!=0 for x in srcs]
+            M = np.vstack(srcs)
+            _, first_index = np.unique(M, axis=0, return_index=True)
+            mask = np.isin(np.arange(M.shape[0]), first_index)
+            mask[np.sum(M, axis=1)==0] = False
+            return mask
         
     def _stack_memmap_files(self, in_paths, out_path):
         """
@@ -71,18 +75,14 @@ class DatamodelsPipelineBasic(DatamodelsPipelineInterface):
         """
         srcs  = [np.lib.format.open_memmap(p, mode="r") for p in in_paths]
         ref_dtype = srcs[0].dtype
-        total = np.sum(np.array([x.sum() for x in self._model_completed_indices]))
+        total = len(self._model_completed_indices)
         out_shape = (int(total), srcs[0].shape[1])
         out = np.lib.format.open_memmap(out_path,
                                         mode="w+",
                                         dtype=ref_dtype,
                                         shape=out_shape)   
-        offset = 0
-        for i, arr in enumerate(srcs):
-            arr = arr[self._model_completed_indices[i]]
-            n = arr.shape[0]
-            out[offset:offset+n] = arr.copy()    
-            offset += n
+        
+        out[:] = np.vstack(srcs)[self._model_completed_indices]
 
         out._mmap.close() 
 
