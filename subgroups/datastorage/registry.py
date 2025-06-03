@@ -9,7 +9,7 @@ from ..datasamplers.random_generators import RandomGeneratorSNR, RandomGenerator
 from ..experiments.stopping_condition import SNRPrecisionStopping
 from ..utils.pick_best_architecture import return_best_model_architecture
 from ..datamodels.datamodels_pipeline import DatamodelsPipelineBasic
-from ..datamodels.regressor import LassoFactory
+from ..datamodels.regressor import LassoFactory, LinearRegressionFactory
 from ..datamodels.indices import SequentialIndices
 import os
 from ..datasets.registry import rosmap_singlecell
@@ -101,7 +101,7 @@ def ace_csf_proteomics_experiment() -> Experiment: # TODO: The overwrite config 
         indices_to_fit=SequentialIndices(batch_size=50),
         dm_n_train=9000,
         dm_n_test=1000,
-        datamodels_pipeline=DatamodelsPipelineBasic(datamodel_factory=LassoFactory(),
+        datamodels_pipeline=DatamodelsPipelineBasic(datamodel_factory=LinearRegressionFactory(),
                                                     path_to_inputs=os.path.join(path, name, "classifier_outputs"),
                                                     path_to_outputs=os.path.join(path, name, "datamodel_outputs")),
     )

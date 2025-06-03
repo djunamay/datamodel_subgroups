@@ -3,6 +3,7 @@ from sklearn.linear_model import LassoCV
 from sklearn.linear_model._coordinate_descent import LinearModelCV
 from .base import SklearnRegressor
 import chz
+from sklearn.linear_model import LinearRegression
 
 class SklearnRegressorCV(SklearnRegressor, LinearModelCV):
     """A class that combines the functionalities of SklearnRegressor and LinearModelCV."""
@@ -28,3 +29,15 @@ class LassoFactory(DataModelFactory):
         Construct an SklearnRegressorCV instance based on an optional input seed.
         """
         return LassoCV(cv=self.cv_splits, random_state=seed, n_jobs=1, n_alphas=self.n_lambdas)
+
+@chz.chz
+class LinearRegressionFactory(DataModelFactory):
+    """
+    A factory for creating unregularized LinearRegression models.
+    """
+
+    def build_model(self, seed: int = None) -> SklearnRegressor:
+        """
+        Construct a LinearRegression instance (no regularization).
+        """
+        return LinearRegression()
