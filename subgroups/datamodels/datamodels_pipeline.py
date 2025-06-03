@@ -43,8 +43,18 @@ class DatamodelsPipelineBasic(DatamodelsPipelineInterface):
         pattern = f"{directory}/*{search_pattern}.npy"
         return sorted(glob.glob(pattern))
 
-    @staticmethod
-    def _stack_memmap_files(in_paths, out_path):
+    @chz.init_property
+    def _model_completed_indices(self):
+        out_path = os.path.join(self.path_to_inputs, "masks_concatenated.npy")
+        
+        if os.path.exists(out_path):
+            return None
+        else:
+            in_paths = self._find_files(self.path_to_inputs, 'test_accuracies')
+            srcs  = [np.lib.format.open_memmap(p, mode="r") for p in in_paths]
+            return [x!=0 for x in srcs]
+        
+    def _stack_memmap_files(self, in_paths, out_path):
         """
         Stack multiple memory-mapped files into a single file.
 
@@ -61,14 +71,15 @@ class DatamodelsPipelineBasic(DatamodelsPipelineInterface):
         """
         srcs  = [np.lib.format.open_memmap(p, mode="r") for p in in_paths]
         ref_dtype = srcs[0].dtype
-        total =np.sum([i.shape[0] for i in srcs])
+        total = np.sum(np.array([x.sum() for x in self._model_completed_indices]))
         out_shape = (int(total), srcs[0].shape[1])
         out = np.lib.format.open_memmap(out_path,
                                         mode="w+",
                                         dtype=ref_dtype,
                                         shape=out_shape)   
         offset = 0
-        for arr in srcs:
+        for i, arr in enumerate(srcs):
+            arr = arr[self._model_completed_indices[i]]
             n = arr.shape[0]
             out[offset:offset+n] = arr.copy()    
             offset += n
@@ -118,7 +129,7 @@ class DatamodelsPipelineBasic(DatamodelsPipelineInterface):
             mask_input_paths = self._mask_input_paths
             if len(mask_input_paths) == 0:
                 raise ValueError("No mask files found. Did you run the training pipeline?")
-            self._stack_memmap_files(mask_input_paths, out_path)
+            self._stack_memmap_files(in_paths=mask_input_paths, out_path=out_path)
             return np.load(out_path, mmap_mode="r") #if self.n_test is None else np.load(out_path, mmap_mode="r")[:self.n_train+self.n_test]
         
         else:
@@ -139,7 +150,7 @@ class DatamodelsPipelineBasic(DatamodelsPipelineInterface):
             margin_input_paths = self._margins_input_paths
             if len(margin_input_paths) == 0:
                 raise ValueError("No margin files found. Did you run the training pipeline?")
-            self._stack_memmap_files(margin_input_paths, out_path)
+            self._stack_memmap_files(in_paths=margin_input_paths, out_path=out_path)
             return np.load(out_path, mmap_mode="r") #if self.n_test is None else np.load(out_path, mmap_mode="r")[:self.n_train+self.n_test]
         
         else:
