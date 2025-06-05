@@ -46,7 +46,7 @@ def gtex_subset_experiment() -> Experiment:
         mask_factory_initializer=fixed_alpha_mask_factory_initializer(upper_bound=0.2),
         in_memory=False,
         snr_n_models=1000,
-        snr_n_passes=10,
+        snr_n_passes=50,
         snr_random_generator=RandomGeneratorSNR, 
         tc_random_generator=RandomGeneratorTC,
         path=path,
