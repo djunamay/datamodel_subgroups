@@ -82,7 +82,7 @@ class GTEXDataset(BaseDataset):
         """
         Record array of selected descriptive metadata fields.
         """
-        vars = ['SAMPID', 'SMNABTCH', 'SMRIN', 'SUBJID', 'SEX', 'AGE', 'DTHHRDY']
+        vars = ['SAMPID', 'SMNABTCH', 'SMRIN', 'SUBJID', 'SEX', 'AGE', 'DTHHRDY', 'SMTSD', 'SMTS']
         return self._meta_data[vars].to_records(index=False)
 
     @property

@@ -28,7 +28,7 @@ def gtex_experiment() -> Experiment:
     )
 
 def gtex_subset_experiment() -> Experiment:
-    path = "/Users/djuna/Documents/temp/results/"
+    path = "/orcd/data/lhtsai/001/djuna/results/"
     name = "gtex_subset_experiment"
     try:
         parameters, alpha = return_best_model_architecture(os.path.join(path, name, "snr_outputs"))
