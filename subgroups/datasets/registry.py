@@ -35,8 +35,8 @@ def ace_csf_proteomics() -> AceDataset:
 
 def rosmap_singlecell() -> RosmapSingleCellDataset:
     return RosmapSingleCellDataset(
-        path_to_data = '/Users/djuna/Documents/subgroups_data/rosmap_mathys400/normalized_batch_corrected_all_celltypes.npy',
-        path_to_meta_data = '/Users/djuna/Documents/subgroups_data/rosmap_mathys400/meta.npy',
-        path_to_extended_meta_data = '/Users/djuna/Documents/subgroups_data/rosmap_mathys400/dataset_1282_06-16-2023_long_and_basic_merged_427patients_DianePathAnno_Sorted_DC_2024_06_16.csv',
-        path_to_projid_dictionary = '/Users/djuna/Documents/subgroups_data/rosmap_mathys400/variable_encodings/projid_dictionary.npy'
+        path_to_data = '/orcd/data/lhtsai/001/djuna/data/rosmap_mathys400/normalized_batch_corrected_all_celltypes.npy',
+        path_to_meta_data = '/orcd/data/lhtsai/001/djuna/data/rosmap_mathys400/meta.npy',
+        path_to_extended_meta_data = '/orcd/data/lhtsai/001/djuna/data/rosmap_mathys400/dataset_1282_06-16-2023_long_and_basic_merged_427patients_DianePathAnno_Sorted_DC_2024_06_16.csv',
+        path_to_projid_dictionary = '/orcd/data/lhtsai/001/djuna/data/rosmap_mathys400/variable_encodings/projid_dictionary.npy'
     )
