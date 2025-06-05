@@ -47,7 +47,7 @@ class DatamodelsPipelineBasic(DatamodelsPipelineInterface):
     def _model_completed_indices(self):
         out_path = os.path.join(self.path_to_inputs, "masks_concatenated.npy")
         
-        if os.path.exists(out_path):
+        if not os.path.exists(out_path):
             return None
         else:
             in_paths = self._find_files(self.path_to_inputs, 'masks')
