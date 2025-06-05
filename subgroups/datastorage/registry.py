@@ -13,6 +13,27 @@ from ..datamodels.regressor import LassoFactory, LinearRegressionFactory
 from ..datamodels.indices import SequentialIndices
 import os
 from ..datasets.registry import rosmap_singlecell
+
+import chz
+
+def instance_to_class(instance, recursive: bool = True):
+    class NewClass(type(instance)):
+        ...
+    
+    for name, field in chz.chz_fields(instance).items():
+        default_value = getattr(instance, name)
+        if chz.is_chz(default_value) and recursive:
+            setattr(NewClass, name, chz.field(default_factory=instance_to_class(default_value, recursive=True)))
+        else:
+            setattr(NewClass, name, chz.field(default=default_value))
+        NewClass.__annotations__[name] = field.final_type
+    return chz.chz(NewClass)
+
+def overridable(fn):
+    def wrapped():
+        return instance_to_class(fn(), recursive=True)
+    return wrapped()
+
 def gtex_experiment() -> Experiment:
     return Experiment(
         dataset=gtex(),
@@ -73,6 +94,7 @@ def random_dataset_experiment() -> Experiment:
            tc_random_generator=RandomGeneratorTC,
            )
 
+@overridable
 def ace_csf_proteomics_experiment() -> Experiment: # TODO: The overwrite config doesn't work well when running the snr pipeline as independent batches with different seeds - Need to set overwrite to True then since the best model architecture can change over time. Fix this config issue.
     path = "/home/Genomica/03-Collabs/djuna/results/"
     name = "ace_csf_proteomics_experiment"

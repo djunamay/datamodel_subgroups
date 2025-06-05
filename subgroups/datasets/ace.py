@@ -20,6 +20,7 @@ class AceDataset(BaseDataset):
     """
     path_to_data: str = chz.field(doc="Path to the CSF data")
     path_to_meta_data: str = chz.field(doc="Path to the meta data")
+    split: str = chz.field(doc="coarse label to use for training", default='amnestic')
     
     @chz.init_property
     def _full_csf_data(self):
@@ -45,6 +46,7 @@ class AceDataset(BaseDataset):
             meta_data[col] = pd.to_datetime(meta_data[col], format='%Y-%m-%d')
         meta_data['age'] = meta_data.apply(lambda row: self._calculate_age(row['date_of_birth'], row['date_csf']), axis=1)
         meta_data['abs_time_cog_to_csf_days'] = np.abs((meta_data['date_csf']-meta_data['date_monitoring_csf']).dt.days)
+        meta_data['age_group'] = meta_data['age']>np.median(meta_data['age'])
         return meta_data 
 
     @chz.init_property
@@ -157,7 +159,10 @@ class AceDataset(BaseDataset):
         Binary labels indicating dementia status (shape: [n_samples]).
         """
         #return (self._meta_data['syndromic_tag'] == 'dementia').values.astype(bool)
-        coarse_labels = [x in set([130100.0, 130200.0, 130400.0]) for x in self._meta_data['diagnostic_primary_csf']] # amnestic vs non-amnestic split recommended by Diane Chan
+        if self.split == 'amnestic':
+            coarse_labels = [x in set([130100.0, 130200.0, 130400.0]) for x in self._meta_data['diagnostic_primary_csf']] # amnestic vs non-amnestic split recommended by Diane Chan
+        elif self.split == 'age_group':
+            coarse_labels = self._meta_data['age_group']
         return np.array(coarse_labels, dtype=bool)
     
     @property
