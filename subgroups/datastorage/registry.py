@@ -52,7 +52,7 @@ def gtex_subset_experiment() -> Experiment:
     path = "/orcd/data/lhtsai/001/djuna/results/"
     name = "gtex_subset_experiment"
     try:
-        parameters, alpha = return_best_model_architecture(os.path.join(path, name, "snr_outputs"))
+        parameters, alpha = return_best_model_architecture(os.path.join(path, name, "snr_outputs"), acc_cutoff=0)
         mask_factory = fixed_alpha_mask_factory(**alpha)
         model_factory = XgbFactory(**parameters)
     except ValueError:
