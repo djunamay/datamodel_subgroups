@@ -129,11 +129,13 @@ def run_training_batch(args: TrainClassifiersArgs):
     _call_storage_warning(storage.masks.shape[0], args.n_models)
 
     for i, mask in tqdm(enumerate(storage.masks), desc='Training classifiers', total=args.n_models):
+        rng_s = args.random_generator.train_data_shuffle_seed
+        rng_m = args.random_generator.model_build_seed
+        
         if storage.is_filled(i):
             continue
 
-        clf   = args.model_factory.build_model(seed=args.random_generator.model_build_seed)
-        rng_s = args.random_generator.train_data_shuffle_seed
+        clf   = args.model_factory.build_model(seed=rng_m)
         margins, acc = fit_single_classifier(ds.features, ds.coarse_labels, mask, clf, rng_s)
         storage.fill_results(i, margins, acc)
 
