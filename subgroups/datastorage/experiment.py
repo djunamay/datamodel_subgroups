@@ -62,6 +62,7 @@ class Experiment:
     dm_n_train: int=chz.field(default=None, doc='Number of training samples for the datamodels pipeline.')
     dm_n_test: Optional[int]=chz.field(default=None, doc='Number of test samples for the datamodels pipeline.')
     indices_to_fit: IndicesFunction=chz.field(default=None, doc='Indices to fit for the experiment.')
+    notes: str=chz.field(default=None, doc='Notes for the experiment.')
 
     @chz.init_property
     def _check_path(self):

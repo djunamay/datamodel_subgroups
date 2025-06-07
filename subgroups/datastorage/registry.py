@@ -13,26 +13,26 @@ from ..datamodels.regressor import LassoFactory, LinearRegressionFactory
 from ..datamodels.indices import SequentialIndices
 import os
 from ..datasets.registry import rosmap_singlecell
-
+from ..datasets.ace import AceDataset
 import chz
 
-def instance_to_class(instance, recursive: bool = True):
-    class NewClass(type(instance)):
-        ...
+# def instance_to_class(instance, recursive: bool = True):
+#     class NewClass(type(instance)):
+#         ...
     
-    for name, field in chz.chz_fields(instance).items():
-        default_value = getattr(instance, name)
-        if chz.is_chz(default_value) and recursive:
-            setattr(NewClass, name, chz.field(default_factory=instance_to_class(default_value, recursive=True)))
-        else:
-            setattr(NewClass, name, chz.field(default=default_value))
-        NewClass.__annotations__[name] = field.final_type
-    return chz.chz(NewClass)
+#     for name, field in chz.chz_fields(instance).items():
+#         default_value = getattr(instance, name)
+#         if chz.is_chz(default_value) and recursive:
+#             setattr(NewClass, name, chz.field(default_factory=instance_to_class(default_value, recursive=True)))
+#         else:
+#             setattr(NewClass, name, chz.field(default=default_value))
+#         NewClass.__annotations__[name] = field.final_type
+#     return chz.chz(NewClass)
 
-def overridable(fn):
-    def wrapped():
-        return instance_to_class(fn(), recursive=True)
-    return wrapped()
+# def overridable(fn):
+#     def wrapped():
+#         return instance_to_class(fn(), recursive=True)
+#     return wrapped()
 
 def gtex_experiment() -> Experiment:
     return Experiment(
@@ -94,11 +94,11 @@ def random_dataset_experiment() -> Experiment:
            tc_random_generator=RandomGeneratorTC,
            )
 
-#@overridable
-def ace_csf_proteomics_experiment() -> Experiment: # TODO: The overwrite config doesn't work well when running the snr pipeline as independent batches with different seeds - Need to set overwrite to True then since the best model architecture can change over time. Fix this config issue.
+#@overridable # TODO: have to fix this / move each function into own file because overridable gets called on import of any function in this file, meaning that it raises an error when the data isnt found
+def ace_csf_proteomics_amnestic_experiment() -> Experiment: # TODO: The overwrite config doesn't work well when running the snr pipeline as independent batches with different seeds - Need to set overwrite to True then since the best model architecture can change over time. Fix this config issue.
     # TODO: overridable works but not recurisvely and means that the config file is not well-documented
     path = "/home/Genomica/03-Collabs/djuna/results/"
-    name = "ace_csf_proteomics_experiment"
+    name = "ace_csf_proteomics_amnestic_experiment"
     try:
         parameters, alpha = return_best_model_architecture(os.path.join(path, name, "snr_outputs"), acc_cutoff=0)
         mask_factory = fixed_alpha_mask_factory(**alpha)
@@ -127,6 +127,45 @@ def ace_csf_proteomics_experiment() -> Experiment: # TODO: The overwrite config 
         datamodels_pipeline=DatamodelsPipelineBasic(datamodel_factory=LinearRegressionFactory(),
                                                     path_to_inputs=os.path.join(path, name, "classifier_outputs"),
                                                     path_to_outputs=os.path.join(path, name, "datamodel_outputs")),
+        notes="This experiment was performed after implementing additional filtering of the data to remove features that were not human or that had failed the column check, as well as MAPT or APP."
+    )
+
+def ace_csf_proteomics_age_experiment() -> Experiment: # TODO: The overwrite config doesn't work well when running the snr pipeline as independent batches with different seeds - Need to set overwrite to True then since the best model architecture can change over time. Fix this config issue.
+    # TODO: overridable works but not recurisvely and means that the config file is not well-documented
+    path = "/home/Genomica/03-Collabs/djuna/results/"
+    name = "ace_csf_proteomics_age_experiment"
+    try:
+        parameters, alpha = return_best_model_architecture(os.path.join(path, name, "snr_outputs"), acc_cutoff=0)
+        mask_factory = fixed_alpha_mask_factory(**alpha)
+        model_factory = XgbFactory(**parameters)
+    except ValueError:
+        mask_factory = fixed_alpha_mask_factory(alpha=0.01)
+        model_factory = XgbFactory()
+
+    return Experiment(
+        dataset=AceDataset(
+        path_to_data = '/home/Genomica/03-Collabs/djuna/data/202112_Somascan_harpone_db_CSF_ACE_n1370.txt',
+        path_to_sample_meta_data = '/home/Genomica/03-Collabs/djuna/data/202406_shared_clinicaldb_CSF_ACE_n1370.txt',
+        split='age_group'),
+        mask_factory=mask_factory,
+        model_factory=model_factory,
+        model_factory_initializer=XgbFactoryInitializer(), 
+        mask_factory_initializer=fixed_alpha_mask_factory_initializer(upper_bound=0.3), # this upper bound ensures at maximum 70% sampling of the smaller class for training
+        in_memory=False,
+        snr_n_models=1000,
+        snr_n_passes=50,
+        snr_random_generator=RandomGeneratorSNR, 
+        tc_random_generator=RandomGeneratorTC,
+        path=path,
+        experiment_name=name,
+        stopping_condition=SNRPrecisionStopping(tolerance=0.1),
+        indices_to_fit=SequentialIndices(batch_size=1171),
+        dm_n_train=500000,
+        dm_n_test=500000,
+        datamodels_pipeline=DatamodelsPipelineBasic(datamodel_factory=LinearRegressionFactory(),
+                                                    path_to_inputs=os.path.join(path, name, "classifier_outputs"),
+                                                    path_to_outputs=os.path.join(path, name, "datamodel_outputs")),
+        notes="This experiment was performed after implementing additional filtering of the data to remove features that were not human or that had failed the column check."
     )
 
 def rosmap_singlecell_experiment() -> Experiment: # TODO: The overwrite config doesn't work well when running the snr pipeline as independent batches with different seeds - Need to set overwrite to True then since the best model architecture can change over time. Fix this config issue.
