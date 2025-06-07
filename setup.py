@@ -9,6 +9,8 @@ setup(
         "numpy",
         "pandas",
         "scikit-learn",
+        "chz", 
+        "xgboost"
         # …any other runtime deps…
     ],
     author="Your Name",
