@@ -95,7 +95,8 @@ class AceDataset(BaseDataset):
         """
         csf_data = pd.read_csv(self.path_to_data, sep='\t', low_memory=False)
         code = csf_data['csf_code']
-        csf_data = csf_data[[x+'.SOMA_HARP2021_CSF' for x in self._features_to_keep]]
+        suffix = 'PLASMA' if self.path_to_feature_meta_data.split('_')[1]=='Plasma' else 'CSF'
+        csf_data = csf_data[[x+'.SOMA_HARP2021_'+suffix for x in self._features_to_keep]]
         csf_data.index = code
         return csf_data.dropna(axis=0)
 
