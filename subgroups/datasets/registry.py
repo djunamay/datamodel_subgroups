@@ -31,7 +31,7 @@ def gtex_subset() -> GTEXDataset:
 def ace_csf_proteomics() -> AceDataset:
     return AceDataset(
         path_to_data = '/home/Genomica/03-Collabs/djuna/data/202112_Somascan_harpone_db_CSF_ACE_n1370.txt',
-        path_to_meta_data = '/home/Genomica/03-Collabs/djuna/data/202406_shared_clinicaldb_CSF_ACE_n1370.txt'
+        path_to_sample_meta_data = '/home/Genomica/03-Collabs/djuna/data/202406_shared_clinicaldb_CSF_ACE_n1370.txt'
     )
 
 def rosmap_singlecell() -> RosmapSingleCellDataset:
