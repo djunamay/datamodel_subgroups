@@ -95,7 +95,9 @@ class AceDataset(BaseDataset):
 
     @chz.init_property
     def _data_dictionary(self):
-        return pd.read_excel(self.path_to_sample_meta_data_dictionary)
+        data_dictionary = pd.read_excel(self.path_to_sample_meta_data_dictionary)
+        data_dictionary.index = data_dictionary['variable_name']
+        return data_dictionary
     
     @chz.init_property
     def _complete_meta_data(self):
