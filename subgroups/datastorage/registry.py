@@ -1,4 +1,4 @@
-from ..datasets.registry import gtex, gtex_subset, ace_csf_proteomics
+from ..datasets.registry import gtex, gtex_subset, ace_csf_proteomics, ace_plasma_proteomics
 from ..datasets.test_data import RandomDataset
 from ..datasamplers.mask_generators import fixed_alpha_mask_factory
 from ..models.classifier import XgbFactory
@@ -109,6 +109,41 @@ def ace_csf_proteomics_amnestic_experiment() -> Experiment: # TODO: The overwrit
 
     return Experiment(
         dataset=ace_csf_proteomics(),
+        mask_factory=mask_factory,
+        model_factory=model_factory,
+        model_factory_initializer=XgbFactoryInitializer(), 
+        mask_factory_initializer=fixed_alpha_mask_factory_initializer(upper_bound=0.3), # this upper bound ensures at maximum 70% sampling of the smaller class for training
+        in_memory=False,
+        snr_n_models=1000,
+        snr_n_passes=50,
+        snr_random_generator=RandomGeneratorSNR, 
+        tc_random_generator=RandomGeneratorTC,
+        path=path,
+        experiment_name=name,
+        stopping_condition=SNRPrecisionStopping(tolerance=0.1),
+        indices_to_fit=SequentialIndices(batch_size=1171),
+        dm_n_train=500000,
+        dm_n_test=500000,
+        datamodels_pipeline=DatamodelsPipelineBasic(datamodel_factory=LinearRegressionFactory(),
+                                                    path_to_inputs=os.path.join(path, name, "classifier_outputs"),
+                                                    path_to_outputs=os.path.join(path, name, "datamodel_outputs")),
+        notes="This experiment was performed after implementing additional filtering of the data to remove features that were not human or that had failed the column check, as well as MAPT or APP."
+    )
+
+def ace_plasma_proteomics_amnestic_experiment() -> Experiment: # TODO: The overwrite config doesn't work well when running the snr pipeline as independent batches with different seeds - Need to set overwrite to True then since the best model architecture can change over time. Fix this config issue.
+    # TODO: overridable works but not recurisvely and means that the config file is not well-documented
+    path = "/home/Genomica/03-Collabs/djuna/results/"
+    name = "ace_plasma_proteomics_amnestic_experiment"
+    try:
+        parameters, alpha = return_best_model_architecture(os.path.join(path, name, "snr_outputs"), acc_cutoff=0)
+        mask_factory = fixed_alpha_mask_factory(**alpha)
+        model_factory = XgbFactory(**parameters)
+    except ValueError:
+        mask_factory = fixed_alpha_mask_factory(alpha=0.01)
+        model_factory = XgbFactory()
+
+    return Experiment(
+        dataset=ace_plasma_proteomics(),
         mask_factory=mask_factory,
         model_factory=model_factory,
         model_factory_initializer=XgbFactoryInitializer(), 

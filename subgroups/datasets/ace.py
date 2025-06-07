@@ -99,10 +99,11 @@ class AceDataset(BaseDataset):
         Dataframe with preprocessed CSF data with 'csf_code' as index.
         """
         csf_data = pd.read_csv(self.path_to_data, sep='\t', low_memory=False)
+        csf_data = csf_data.dropna(axis=0)
         code = csf_data['csf_code']
         csf_data = csf_data[self._soma_features_to_keep]
         csf_data.index = code
-        return csf_data.dropna(axis=0)
+        return csf_data
 
     @chz.init_property
     def _data_dictionary(self):

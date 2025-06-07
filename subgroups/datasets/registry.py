@@ -34,6 +34,13 @@ def ace_csf_proteomics() -> AceDataset:
         path_to_sample_meta_data = '/home/Genomica/03-Collabs/djuna/data/202406_shared_clinicaldb_CSF_ACE_n1370.txt'
     )
 
+def ace_plasma_proteomics() -> AceDataset:
+    return AceDataset(
+        path_to_data = '/home/Genomica/03-Collabs/djuna/data/202112_Somascan_harpone_db_Plasma_ACE_n1370.txt',
+        path_to_sample_meta_data = '/home/Genomica/03-Collabs/djuna/data/202406_shared_clinicaldb_CSF_ACE_n1370.txt',
+        path_to_feature_meta_data = '/home/Genomica/03-Collabs/djuna/data/HARPONE-Somalogic_Plasma_Annotations_anmlSMP.xlsx'
+    )
+
 def rosmap_singlecell() -> RosmapSingleCellDataset:
     return RosmapSingleCellDataset(
         path_to_data = '/orcd/data/lhtsai/001/djuna/data/rosmap_mathys400/normalized_batch_corrected_all_celltypes.npy',
