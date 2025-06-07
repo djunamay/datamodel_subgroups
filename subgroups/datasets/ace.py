@@ -77,10 +77,10 @@ class AceDataset(BaseDataset):
     
     @chz.init_property
     def _features_to_keep(self):
-        features_keep = self._feature_info['AptName'][np.array((self._feature_info['Type']=='Protein') & (self._feature_info['Organism']=='Human') & (self._feature_info['ColCheck']=='PASS'))] 
+        features_keep = (self._feature_info['Type']=='Protein') & (self._feature_info['Organism']=='Human') & (self._feature_info['ColCheck']=='PASS')
         if self.split == 'amnestic':
             features_keep = features_keep & (self._feature_info['EntrezGeneSymbol']!='APP') & (self._feature_info['EntrezGeneSymbol']!='MAPT') # removing these features as derivatives used to annoate amnestic labels
-        return features_keep
+        return self._feature_info['AptName'][np.array(features_keep)]
 
     @chz.init_property
     def _full_csf_data(self):
