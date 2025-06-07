@@ -19,48 +19,11 @@ class AceDataset(BaseDataset):
         Path to the meta data.
     """
     path_to_data: str = chz.field(doc="Path to the CSF data")
-    path_to_meta_data: str = chz.field(doc="Path to the meta data")
+    path_to_sample_meta_data: str = chz.field(doc="Path to the meta data")
+    path_to_feature_meta_data: str = chz.field(doc="Path to the feature info", default='/home/Genomica/03-Collabs/djuna/data/HARPONE-Somalogic_CSF_Annotations_anmlSMP.xlsx')
+    path_to_sample_meta_data_dictionary: str = chz.field(doc="Path to the data dictionary", default='/home/Genomica/03-Collabs/djuna/clinical_data_ACE/202406_FACE_data_dictionary_CSF.xlsx')
     split: str = chz.field(doc="coarse label to use for training", default='amnestic')
     
-    @chz.init_property
-    def _full_csf_data(self):
-        """
-        Dataframe with preprocessed CSF data with 'csf_code' as index.
-        """
-        csf_data = pd.read_csv(self.path_to_data, sep='\t', low_memory=False)
-        code = csf_data['csf_code']
-        csf_data = csf_data[[col for col in csf_data.columns if col.endswith('CSF')]]
-        csf_data.index = code
-        return csf_data.dropna(axis=0)
-
-    @chz.init_property
-    def _full_meta_data(self):
-        """
-        Dataframe with preprocessed meta data, including date conversion and age calculation.
-        """
-        meta_data = pd.read_csv(self.path_to_meta_data, sep='\t', usecols=range(1971), low_memory=False)
-        meta_data.index = meta_data['csf_code']
-        dictionary = dict(zip(meta_data['diagnostic_syndromic_csf_tag'].unique(), ['mild_cognitive_impairment', 'dementia', 'subjective_memory_complaint', 'control', 'other', 'other']))
-        meta_data['syndromic_tag'] = meta_data['diagnostic_syndromic_csf_tag'].map(dictionary)
-        for col in ['date_of_birth', 'date_csf', 'date_monitoring_csf']:
-            meta_data[col] = pd.to_datetime(meta_data[col], format='%Y-%m-%d')
-        meta_data['age'] = meta_data.apply(lambda row: self._calculate_age(row['date_of_birth'], row['date_csf']), axis=1)
-        meta_data['abs_time_cog_to_csf_days'] = np.abs((meta_data['date_csf']-meta_data['date_monitoring_csf']).dt.days)
-        meta_data['age_group'] = meta_data['age']>np.median(meta_data['age'])
-        return meta_data 
-
-    @chz.init_property
-    def _indices_to_keep(self):
-        """
-        Boolean series indicating which samples to keep.
-        """
-        meta_data = self._full_meta_data.loc[self._full_csf_data.index]
-        indices_to_keep = (
-            (meta_data["abs_time_cog_to_csf_days"] < 155)
-            & meta_data["syndromic_tag"].isin({"mild_cognitive_impairment", "dementia"})
-        )
-        return indices_to_keep
-
     @staticmethod
     def _calculate_age(birth_date, reference_date):
         """
@@ -106,31 +69,70 @@ class AceDataset(BaseDataset):
         projections = pca.fit_transform(scaled_data)
         return projections
     
-    @property
-    def _descriptive_data(self):
+    @chz.init_property
+    def _feature_info(self):
+        feature_info = pd.read_excel(self.path_to_feature_meta_data)
+        feature_info.index = feature_info['AptName']
+        return feature_info
+    
+    @chz.init_property
+    def _features_to_keep(self):
+        features_keep = self._feature_info['AptName'][np.array((self._feature_info['Type']=='Protein') & (self._feature_info['Organism']=='Human') & (self._feature_info['ColCheck']=='PASS'))] 
+        if self.split == 'amnestic':
+            features_keep = features_keep & (self._feature_info['EntrezGeneSymbol']!='APP') & (self._feature_info['EntrezGeneSymbol']!='MAPT') # removing these features as derivatives used to annoate amnestic labels
+        return features_keep
+
+    @chz.init_property
+    def _full_csf_data(self):
         """
-        Record array of descriptive metadata fields.
+        Dataframe with preprocessed CSF data with 'csf_code' as index.
         """
-        vars = [
-            'age',
-            'abs_time_cog_to_csf_days', 
-            'csf_technique',
-            'csf_abeta_42',
-            'csf_p_tau',
-            'csf_tau',
-            'csf_ratio_abeta_42_40', 
-            'a_1pos_0neg',
-            't_1pos_0neg',
-            'n_1pos_0neg',
-            'sex_1M_2F',
-            'genetic_apoe',
-            'mmse_csf',
-            'cdr_csf',
-            'gds_csf',
-            'syndromic_tag', 
-            'diagnostic_primary_csf_label'
-        ]
-        return self._meta_data[vars].to_records(index=False)
+        csf_data = pd.read_csv(self.path_to_data, sep='\t', low_memory=False)
+        code = csf_data['csf_code']
+        csf_data = csf_data[[x+'.SOMA_HARP2021_CSF' for x in self._features_to_keep]]
+        csf_data.index = code
+        return csf_data.dropna(axis=0)
+
+    @chz.init_property
+    def _data_dictionary(self):
+        return pd.read_excel(self.path_to_sample_meta_data_dictionary)
+    
+    @chz.init_property
+    def _complete_meta_data(self):
+        meta_data = pd.read_csv(self.path_to_sample_meta_data, sep='\t', usecols=range(1971), low_memory=False)
+        meta_data.index = meta_data['csf_code']
+        return meta_data
+    
+    @chz.init_property
+    def _meta_data_columns_to_keep(self):
+        return np.intersect1d(self._complete_meta_data.columns, self._data_dictionary['variable_name']) # only keep metadata variables that have descriptions
+    
+    @chz.init_property
+    def _full_meta_data(self):
+        """
+        Dataframe with preprocessed meta data, including date conversion and age calculation.
+        """
+        meta_data = self._complete_meta_data[self._meta_data_columns_to_keep]
+        dictionary = dict(zip(meta_data['diagnostic_syndromic_csf_tag'].unique(), ['mild_cognitive_impairment', 'dementia', 'subjective_memory_complaint', 'control', 'other', 'other']))
+        meta_data['syndromic_tag'] = meta_data['diagnostic_syndromic_csf_tag'].map(dictionary)
+        for col in ['date_of_birth', 'date_csf', 'date_monitoring_csf']:
+            meta_data[col] = pd.to_datetime(meta_data[col], format='%Y-%m-%d')
+        meta_data['age'] = meta_data.apply(lambda row: self._calculate_age(row['date_of_birth'], row['date_csf']), axis=1)
+        meta_data['abs_time_cog_to_csf_days'] = np.abs((meta_data['date_csf']-meta_data['date_monitoring_csf']).dt.days)
+        meta_data['age_group'] = meta_data['age']>np.median(meta_data['age'])
+        return meta_data 
+
+    @chz.init_property
+    def _indices_to_keep(self):
+        """
+        Boolean series indicating which samples to keep.
+        """
+        meta_data = self._full_meta_data.loc[self._full_csf_data.index]
+        indices_to_keep = (
+            (meta_data["abs_time_cog_to_csf_days"] < 155)
+            & meta_data["syndromic_tag"].isin({"mild_cognitive_impairment", "dementia"})
+        )
+        return indices_to_keep
 
     @chz.init_property
     def _csf_data(self):
@@ -146,6 +148,13 @@ class AceDataset(BaseDataset):
         """
         return self._full_meta_data.loc[self._indices_to_keep] 
     
+    @property
+    def _descriptive_data(self):
+        """
+        Record array of descriptive metadata fields.
+        """
+        return self._meta_data.to_records(index=False)
+
     @property
     def features(self) -> NDArray[float]:
         """
@@ -180,3 +189,17 @@ class AceDataset(BaseDataset):
         Descriptive data (shape: [n_samples, n_descriptive_features]).
         """
         return self._descriptive_data
+    
+    @chz.init_property
+    def feature_info(self):
+        return self._feature_info.loc[self._features_to_keep]
+    
+    @chz.init_property
+    def data_dictionary(self):
+        dictionary = self._data_dictionary.loc[self._meta_data_columns_to_keep]
+        lookup = (
+            dictionary.set_index("variable_name")      
+            .to_dict(orient="index")         
+        )
+        return lookup
+    
