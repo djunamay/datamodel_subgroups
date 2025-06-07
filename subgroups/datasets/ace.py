@@ -169,7 +169,9 @@ class AceDataset(BaseDataset):
         """
         Subset the meta data to the samples that are within 155 days of the cognitive assessment.
         """
-        return self._full_meta_data.loc[self._indices_to_keep] 
+        csf_idx = self._full_csf_data.index
+        meta_for_csf = self._full_meta_data.loc[csf_idx]
+        return meta_for_csf.loc[self._indices_to_keep] 
     
     @property
     def _descriptive_data(self):
