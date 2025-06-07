@@ -71,12 +71,18 @@ class AceDataset(BaseDataset):
     
     @chz.init_property
     def _feature_info(self):
+        """
+        Load feature info from excel file.
+        """
         feature_info = pd.read_excel(self.path_to_feature_meta_data)
         feature_info.index = feature_info['AptName']
         return feature_info
     
     @chz.init_property
     def _features_to_keep(self):
+        """
+        Keep only protein features that are human and have passed the column check.
+        """
         features_keep = (self._feature_info['Type']=='Protein') & (self._feature_info['Organism']=='Human') & (self._feature_info['ColCheck']=='PASS')
         if self.split == 'amnestic':
             features_keep = features_keep & (self._feature_info['EntrezGeneSymbol']!='APP') & (self._feature_info['EntrezGeneSymbol']!='MAPT') # removing these features as derivatives used to annoate amnestic labels
@@ -95,18 +101,27 @@ class AceDataset(BaseDataset):
 
     @chz.init_property
     def _data_dictionary(self):
+        """
+        Load data dictionary that describes the clinical variables in the meta data from excel file.
+        """
         data_dictionary = pd.read_excel(self.path_to_sample_meta_data_dictionary)
         data_dictionary.index = data_dictionary['variable_name']
         return data_dictionary
     
     @chz.init_property
     def _complete_meta_data(self):
+        """
+        Load meta data from csv file.
+        """
         meta_data = pd.read_csv(self.path_to_sample_meta_data, sep='\t', usecols=range(1971), low_memory=False)
         meta_data.index = meta_data['csf_code']
         return meta_data
     
     @chz.init_property
     def _meta_data_columns_to_keep(self):
+        """
+        Keep only the meta data columns that have descriptions.
+        """
         return np.intersect1d(self._complete_meta_data.columns, self._data_dictionary['variable_name']) # only keep metadata variables that have descriptions
     
     @chz.init_property
@@ -127,7 +142,7 @@ class AceDataset(BaseDataset):
     @chz.init_property
     def _indices_to_keep(self):
         """
-        Boolean series indicating which samples to keep.
+        Boolean series indicating which samples to keep based on the time difference between the date of the CSF sample and the date of the cognitive assessment.
         """
         meta_data = self._full_meta_data.loc[self._full_csf_data.index]
         indices_to_keep = (
@@ -139,14 +154,14 @@ class AceDataset(BaseDataset):
     @chz.init_property
     def _csf_data(self):
         """
-        Filtered CSF data.
+        Reduced dimensionality CSF data and subsetted to the samples that are within 155 days of the cognitive assessment.
         """
         return self._reduce_dimensionality(self._full_csf_data.loc[self._indices_to_keep].values.astype(float))
 
     @property
     def _meta_data(self):
         """
-        Filtered meta data.
+        Subset the meta data to the samples that are within 155 days of the cognitive assessment.
         """
         return self._full_meta_data.loc[self._indices_to_keep] 
     
@@ -167,9 +182,8 @@ class AceDataset(BaseDataset):
     @property
     def coarse_labels(self) -> NDArray[bool]:
         """
-        Binary labels indicating dementia status (shape: [n_samples]).
+        Binary labels indicating dementia or ae status (shape: [n_samples]).
         """
-        #return (self._meta_data['syndromic_tag'] == 'dementia').values.astype(bool)
         if self.split == 'amnestic':
             coarse_labels = [x in set([130100.0, 130200.0, 130400.0]) for x in self._meta_data['diagnostic_primary_csf']] # amnestic vs non-amnestic split recommended by Diane Chan
         elif self.split == 'age_group':
@@ -188,16 +202,24 @@ class AceDataset(BaseDataset):
     @property
     def descriptive_data(self) -> np.recarray:
         """
-        Descriptive data (shape: [n_samples, n_descriptive_features]).
+        Descriptive sample meta data (shape: [n_samples, n_descriptive_features]).
         """
         return self._descriptive_data
     
     @chz.init_property
     def feature_info(self):
-        return self._feature_info.loc[self._features_to_keep]
+        """
+        Feature info for the features that are kept.
+        """
+        feature_info = self._feature_info.loc[self._features_to_keep]
+        feature_info.index = [x+'.SOMA_HARP2021_CSF' for x in feature_info['AptName']]
+        return feature_info.to_dict(orient="index")
     
     @chz.init_property
     def data_dictionary(self):
+        """
+        Data dictionary for the sample meta data that is kept.
+        """
         dictionary = self._data_dictionary.loc[self._meta_data_columns_to_keep]
         lookup = (
             dictionary.set_index("variable_name")      
