@@ -112,7 +112,7 @@ class AceDataset(BaseDataset):
         """
         Dataframe with preprocessed meta data, including date conversion and age calculation.
         """
-        meta_data = self._complete_meta_data[self._meta_data_columns_to_keep]
+        meta_data = (self._complete_meta_data[self._meta_data_columns_to_keep]).copy()
         dictionary = dict(zip(meta_data['diagnostic_syndromic_csf_tag'].unique(), ['mild_cognitive_impairment', 'dementia', 'subjective_memory_complaint', 'control', 'other', 'other']))
         meta_data['syndromic_tag'] = meta_data['diagnostic_syndromic_csf_tag'].map(dictionary)
         for col in ['date_of_birth', 'date_csf', 'date_monitoring_csf']:
