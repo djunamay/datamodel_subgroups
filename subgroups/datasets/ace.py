@@ -89,14 +89,18 @@ class AceDataset(BaseDataset):
         return self._feature_info['AptName'][np.array(features_keep)]
 
     @chz.init_property
+    def _soma_features_to_keep(self):
+        suffix = 'PLASMA' if self.path_to_feature_meta_data.split('_')[1]=='Plasma' else 'CSF'
+        return [x+'.SOMA_HARP2021_'+suffix for x in self._features_to_keep]
+    
+    @chz.init_property
     def _full_csf_data(self):
         """
         Dataframe with preprocessed CSF data with 'csf_code' as index.
         """
         csf_data = pd.read_csv(self.path_to_data, sep='\t', low_memory=False)
         code = csf_data['csf_code']
-        suffix = 'PLASMA' if self.path_to_feature_meta_data.split('_')[1]=='Plasma' else 'CSF'
-        csf_data = csf_data[[x+'.SOMA_HARP2021_'+suffix for x in self._features_to_keep]]
+        csf_data = csf_data[self._soma_features_to_keep]
         csf_data.index = code
         return csf_data.dropna(axis=0)
 
@@ -213,7 +217,7 @@ class AceDataset(BaseDataset):
         Feature info for the features that are kept.
         """
         feature_info = self._feature_info.loc[self._features_to_keep]
-        feature_info.index = [x+'.SOMA_HARP2021_CSF' for x in feature_info['AptName']]
+        feature_info.index = self._soma_features_to_keep
         return feature_info.to_dict(orient="index")
     
     @chz.init_property
