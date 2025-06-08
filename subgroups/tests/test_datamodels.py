@@ -19,7 +19,7 @@ def test_pipeline_dm():
     random_dataset = RandomDataset()
 
     exp = Experiment(dataset=random_dataset, 
-            mask_factory=fixed_alpha_mask_factory(alpha=0.1), 
+            mask_factory=fixed_alpha_mask_factory(alpha=0.05), 
             model_factory=XgbFactory(), 
             model_factory_initializer=XgbFactoryInitializer(), 
             mask_factory_initializer=fixed_alpha_mask_factory_initializer(),
