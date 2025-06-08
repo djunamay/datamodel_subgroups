@@ -203,6 +203,7 @@ class AceDataset(BaseDataset):
         """
         Integer labels for each unique primary CSF diagnostic label (shape: [n_samples]).
         """
+        
         x = self._meta_data['diagnostic_primary_csf_label'].unique()
         dictionary = dict(zip(x, range(len(x))))
         return self._meta_data['diagnostic_primary_csf_label'].map(dictionary).values.astype(int)

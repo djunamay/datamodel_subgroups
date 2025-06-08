@@ -135,13 +135,11 @@ class MaskMarginStorage(MaskMarginStorageInterface):
         Masks array (shape: [n_models, n_samples]).
         """
         path = None if self.in_memory else os.path.join(self.path, f"batch_{self.mask_seed}_masks.npy")
+        populate_masks = True if self.in_memory or not os.path.exists(path) else False
         temporary_masks = self._create_array(self.in_memory, path,
             bool, (self.n_models, self.n_samples)
         )
-
-        if self.in_memory:
-            return self._populate_masks(self.mask_factory, temporary_masks, self.labels, self._rng(self.mask_seed))
-        elif not os.path.exists(path):
+        if populate_masks:
             return self._populate_masks(self.mask_factory, temporary_masks, self.labels, self._rng(self.mask_seed))
         else:
             return temporary_masks
