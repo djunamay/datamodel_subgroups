@@ -121,6 +121,8 @@ class AceDatasetPlasmaCSF(BaseDataset):
         """
         Keep only the columns that are in the CSF data.
         """
+        print(self._plasma_features_to_keep)
+        print(self._csf_features_to_keep)
         return np.intersect1d(self._plasma_features_to_keep, self._csf_features_to_keep)
     
     @chz.init_property
