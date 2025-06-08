@@ -15,7 +15,7 @@ import os
 from ..datasets.ace import AceDataset
 from ..datasets.gtex import GTEXDataset
 import chz
-from .datastorage.combined_mask_margin import CombinedMaskMarginStorage
+from .combined_mask_margin import CombinedMaskMarginStorage
 
 # def instance_to_class(instance, recursive: bool = True):
 #     class NewClass(type(instance)):
