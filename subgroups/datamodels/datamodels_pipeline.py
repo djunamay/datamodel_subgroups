@@ -43,20 +43,15 @@ class DatamodelsPipelineBasic(DatamodelsPipelineInterface):
         pattern = f"{directory}/*{search_pattern}.npy"
         return sorted(glob.glob(pattern))
 
-    @chz.init_property
+    @property
     def _model_completed_indices(self):
-        out_path = os.path.join(self.path_to_inputs, "masks_concatenated.npy")
-        
-        if os.path.exists(out_path):
-            return None
-        else:
-            in_paths = self._find_files(self.path_to_inputs, 'masks')
-            srcs  = [np.lib.format.open_memmap(p, mode="r") for p in in_paths]
-            M = np.vstack(srcs)
-            _, first_index = np.unique(M, axis=0, return_index=True)
-            mask = np.isin(np.arange(M.shape[0]), first_index)
-            mask[np.sum(M, axis=1)==0] = False
-            return mask
+        in_paths = self._find_files(self.path_to_inputs, 'masks')
+        srcs  = [np.lib.format.open_memmap(p, mode="r") for p in in_paths]
+        M = np.vstack(srcs)
+        _, first_index = np.unique(M, axis=0, return_index=True)
+        mask = np.isin(np.arange(M.shape[0]), first_index)
+        mask[np.sum(M, axis=1)==0] = False
+        return mask
         
     def _stack_memmap_files(self, in_paths, out_path):
         """
