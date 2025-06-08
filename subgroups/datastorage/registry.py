@@ -75,7 +75,7 @@ def gtex_subset_experiment() -> Experiment:
         indices_to_fit=SequentialIndices(batch_size=50),
         dm_n_train=9000,
         dm_n_test=1000,
-        datamodels_pipeline=DatamodelsPipelineBasic(datamodel_factory=LassoFactory(),
+        datamodels_pipeline=DatamodelsPipelineBasic(datamodel_factory=LinearRegressionFactory(),
                                                     path_to_inputs=os.path.join(path, name, "classifier_outputs"),
                                                     path_to_outputs=os.path.join(path, name, "datamodel_outputs")),
     )
@@ -265,7 +265,7 @@ def rosmap_singlecell_experiment() -> Experiment: # TODO: The overwrite config d
         indices_to_fit=SequentialIndices(batch_size=50),
         dm_n_train=9000,
         dm_n_test=1000,
-        datamodels_pipeline=DatamodelsPipelineBasic(datamodel_factory=LassoFactory(),
+        datamodels_pipeline=DatamodelsPipelineBasic(datamodel_factory=LinearRegressionFactory(),
                                                     path_to_inputs=os.path.join(path, name, "classifier_outputs"),
                                                     path_to_outputs=os.path.join(path, name, "datamodel_outputs")),
     )
