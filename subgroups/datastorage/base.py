@@ -68,3 +68,14 @@ class MaskMarginStorageInterface(ABC):
             Test accuracy for the model instance.
         """
         ...
+
+class CombinedMaskMarginStorageInterface(ABC):
+
+    @property
+    def masks(self) -> Array:
+        ...
+    
+    @property
+    def margins(self) -> Array:
+        ...
+        
