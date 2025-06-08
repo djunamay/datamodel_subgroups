@@ -121,8 +121,6 @@ class AceDatasetPlasmaCSF(BaseDataset):
         """
         Keep only the columns that are in the CSF data.
         """
-        print(self._plasma_features_to_keep)
-        print(self._csf_features_to_keep)
         return np.intersect1d(self._plasma_features_to_keep, self._csf_features_to_keep)
     
     @chz.init_property
@@ -133,7 +131,10 @@ class AceDatasetPlasmaCSF(BaseDataset):
         csf_data = pd.read_csv(self.path_to_data, sep='\t', low_memory=False)
         csf_data = csf_data.dropna(axis=0)
         code = csf_data['csf_code']
+        print(self._csf_columns_to_keep[:10])
+        print(csf_data.head())
         csf_data = csf_data[self._csf_columns_to_keep]
+        print(csf_data.head())
         csf_data.index = code
         return csf_data
 
