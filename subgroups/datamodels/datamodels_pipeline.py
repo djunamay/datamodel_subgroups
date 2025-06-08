@@ -1,6 +1,6 @@
 from .base import DatamodelsPipelineInterface
 from .regressor import DataModelFactory
-
+from ..datastorage.base import CombinedMaskMarginStorageInterface
 import numpy as np
 import os
 import chz
@@ -19,137 +19,17 @@ class DatamodelsPipelineBasic(DatamodelsPipelineInterface):
     A basic implementation of DatamodelsPipelineInterface, which fits a SklearnRegressor to each sample specified in the indices.
     The datamodels are fitted independently of one another.
     """
-    path_to_inputs: str = chz.field(doc='Path to classifier outputs containing the masks and margins.')
+    combined_mask_margin_storage: CombinedMaskMarginStorageInterface = chz.field(doc='class containing the masks and margins.')
     datamodel_factory: DataModelFactory = chz.field(doc='Factory for creating the datamodel.')
     path_to_outputs: str = chz.field(default=None, doc='Path to save the datamodel outputs.')
 
-    @staticmethod
-    def _find_files(directory, search_pattern):
-        """
-        Find all files in the given directory that match the search pattern.
-
-        Parameters
-        ----------
-        directory : str
-            Directory to search for files.
-        search_pattern : str
-            Pattern to search for in the filenames.
-
-        Returns
-        -------
-        List[str]
-            List of file paths that match the search pattern.
-        """
-        pattern = f"{directory}/*{search_pattern}.npy"
-        return sorted(glob.glob(pattern))
-
-    @property
-    def _model_completed_indices(self):
-        in_paths = self._find_files(self.path_to_inputs, 'masks')
-        srcs  = [np.lib.format.open_memmap(p, mode="r") for p in in_paths]
-        M = np.vstack(srcs)
-        _, first_index = np.unique(M, axis=0, return_index=True)
-        mask = np.isin(np.arange(M.shape[0]), first_index)
-        mask[np.sum(M, axis=1)==0] = False
-        return mask
-        
-    def _stack_memmap_files(self, in_paths, out_path):
-        """
-        Stack multiple memory-mapped files into a single file.
-
-        Parameters
-        ----------
-        in_paths : List[str]
-            List of file paths to the memory-mapped files to be stacked.
-        out_path : str
-            Path to save the stacked memory-mapped file.
-
-        Returns
-        -------
-        None
-        """
-        srcs  = [np.lib.format.open_memmap(p, mode="r") for p in in_paths]
-        ref_dtype = srcs[0].dtype
-        total = np.sum(self._model_completed_indices)
-        out_shape = (int(total), srcs[0].shape[1])
-        out = np.lib.format.open_memmap(out_path,
-                                        mode="w+",
-                                        dtype=ref_dtype,
-                                        shape=out_shape)   
-        
-        out[:] = np.vstack(srcs)[self._model_completed_indices]
-
-        out._mmap.close() 
-
-    @property
-    def _mask_input_paths(self):
-        """
-        Get the file paths for the mask files.
-        """
-        return self._find_files(self.path_to_inputs, "masks")
-
-    @property
-    def _margins_input_paths(self):
-        """
-        Get the file paths for the margin files.
-        """
-        return self._find_files(self.path_to_inputs, "margins")
-
-    @property
-    def _batch_order_masks(self):
-        """
-        Get the batch order for the mask files.
-        """
-        return np.array([int(x.split('_')[-2]) for x in self._mask_input_paths])
-
-    @property
-    def _batch_order_margins(self):
-        """
-        Get the batch order for the margin files.
-        """
-        return np.array([int(x.split('_')[-2]) for x in self._margins_input_paths])
-
     @property
     def _masks(self):
-        """
-        Access the concatenated mask files.
-        Verifies that the number of batches and their order - as used for concatenation - are the same for masks and margins.
-        """
-        out_path = os.path.join(self.path_to_inputs, "masks_concatenated.npy")
-        
-        if os.path.exists(out_path):
-            return np.load(out_path, mmap_mode="r") #if self.n_test is None else np.load(out_path, mmap_mode="r")[:self.n_train+self.n_test]
-        
-        elif np.array_equal(self._batch_order_masks, self._batch_order_margins):
-            mask_input_paths = self._mask_input_paths
-            if len(mask_input_paths) == 0:
-                raise ValueError("No mask files found. Did you run the training pipeline?")
-            self._stack_memmap_files(in_paths=mask_input_paths, out_path=out_path)
-            return np.load(out_path, mmap_mode="r") #if self.n_test is None else np.load(out_path, mmap_mode="r")[:self.n_train+self.n_test]
-        
-        else:
-            raise ValueError("The number of batches and/or their order are not the same for masks and margins")
-        
+        return self.combined_mask_margin_storage.masks
+    
     @property
     def _margins(self):
-        """
-        Access the concatenated margin files.
-        Verifies that the number of batches and their order - as used for concatenation - are the same for masks and margins.
-        """
-        out_path = os.path.join(self.path_to_inputs, "margins_concatenated.npy")
-
-        if os.path.exists(out_path):
-            return np.load(out_path, mmap_mode="r") #if self.n_test is None else np.load(out_path, mmap_mode="r")[:self.n_train+self.n_test]
-        
-        elif np.array_equal(self._batch_order_masks, self._batch_order_margins):
-            margin_input_paths = self._margins_input_paths
-            if len(margin_input_paths) == 0:
-                raise ValueError("No margin files found. Did you run the training pipeline?")
-            self._stack_memmap_files(in_paths=margin_input_paths, out_path=out_path)
-            return np.load(out_path, mmap_mode="r") #if self.n_test is None else np.load(out_path, mmap_mode="r")[:self.n_train+self.n_test]
-        
-        else:
-            raise ValueError("The number of batches and/or their order are not the same for masks and margins")
+        return self.combined_mask_margin_storage.margins
     
     @staticmethod
     def _rng(seed):
