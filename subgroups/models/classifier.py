@@ -80,7 +80,8 @@ class XgbFactory(ModelFactory):
                              colsample_bytree=self.colsample_bytree, 
                              gamma=self.gamma, 
                              min_child_weight=self.min_child_weight,
-                             random_state=self._random_state(seed))
+                             random_state=self._random_state(seed),
+                             base_score=0.5)
     
 
 
