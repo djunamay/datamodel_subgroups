@@ -13,7 +13,7 @@ from ..datamodels.indices import SequentialIndices
 import shutil
 import numpy as np
 import os
-
+from ..datastorage.combined_mask_margin import CombinedMaskMarginStorage
 def test_pipeline_dm():
 
     random_dataset = RandomDataset()
@@ -32,7 +32,7 @@ def test_pipeline_dm():
             path = './temp',
             experiment_name = 'test_experiment',
             
-            datamodels_pipeline = DatamodelsPipelineBasic(path_to_inputs = './temp/test_experiment/classifier_outputs',
+            datamodels_pipeline = DatamodelsPipelineBasic(combined_mask_margin_storage = CombinedMaskMarginStorage(path_to_inputs = './temp/test_experiment/classifier_outputs'),
                                                         datamodel_factory = LassoFactory(n_lambdas=10, cv_splits=5),
                                                         path_to_outputs = './temp/test_experiment/datamodel_outputs'),
             indices_to_fit = SequentialIndices(batch_size=5),

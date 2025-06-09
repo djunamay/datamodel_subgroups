@@ -92,9 +92,11 @@ class CombinedMaskMarginStorage(CombinedMaskMarginStorageInterface):
         srcs  = [np.lib.format.open_memmap(p, mode="r") for p in in_paths]
         model_mask_chunks = self._model_completed_masks
         total_chunks = [x.sum() for x in model_mask_chunks]
+        orig_dtype = srcs[0].dtype
+        out_dtype = np.float16 if orig_dtype == np.float32 else orig_dtype
         out = np.lib.format.open_memmap(out_path,
                                         mode="w+",
-                                        dtype=srcs[0].dtype,
+                                        dtype=out_dtype,
                                         shape=(int(np.sum(total_chunks)), srcs[0].shape[1]))   
         offset = 0
         for i, arr in enumerate(srcs):
