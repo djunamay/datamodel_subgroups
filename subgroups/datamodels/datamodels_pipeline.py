@@ -140,8 +140,12 @@ class DatamodelsPipelineBasic(DatamodelsPipelineInterface):
             - If `in_memory=False`: returns a string path to the output location on disk.
         """
         rngs_fit, rngs_shuffle = self._rng(seed)
-        masks = self._masks
-        margins = self._margins
+        if n_test is not None:
+            masks = self._masks[:n_train+n_test]
+            margins = self._margins[:n_train+n_test]
+        else:
+            masks = self._masks
+            margins = self._margins
 
         weights = self._create_array(in_memory, None if in_memory else os.path.join(self.path_to_outputs, f"batch_{seed}_weights.npy"),
             np.float32, (len(indices), masks.shape[1])
