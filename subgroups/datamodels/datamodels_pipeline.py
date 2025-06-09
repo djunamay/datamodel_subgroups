@@ -160,9 +160,11 @@ class DatamodelsPipelineBasic(DatamodelsPipelineInterface):
             np.float32, (len(indices),)
         )
         for i, sample_index in tqdm(enumerate(indices), total=len(indices)):
+            fit_rng = rngs_fit.integers(0, 2**32 - 1)
+            shuffle_rng = rngs_shuffle.integers(0, 2**32 - 1)
             if not correlations[i]==0:
                 continue
-            model = self._fit_one_model(masks, margins, sample_index, rngs_fit.integers(0, 2**32 - 1), rngs_shuffle.integers(0, 2**32 - 1), n_train, n_test)
+            model = self._fit_one_model(masks, margins, sample_index, fit_rng, shuffle_rng, n_train, n_test)
             weights[i] = model['weights']
             biases[i] = model['bias']
             correlations[i] = model['correlation']
