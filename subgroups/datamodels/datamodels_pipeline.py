@@ -77,7 +77,8 @@ class DatamodelsPipelineBasic(DatamodelsPipelineInterface):
         Get the samples for the model.
         For a given sample, exclude any models for fitting in which that sample was included in the training set.
         """
-        index = np.invert(masks[:,sample_index])
+        mask = masks[:,sample_index]
+        index = ~mask
         y = margins[index, sample_index]
         X = masks[index]
         return X, y
