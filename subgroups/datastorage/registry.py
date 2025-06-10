@@ -165,7 +165,7 @@ def ace_csf_proteomics_amnestic_experiment() -> Experiment: # TODO: The overwrit
         dm_n_train=500000,
         dm_n_test=500000,
         datamodels_pipeline=DatamodelsPipelineBasic(datamodel_factory=LinearRegressionFactory(),
-                                                    path_to_inputs=os.path.join(path, name, "classifier_outputs"),
+                                                    combined_mask_margin_storage=CombinedMaskMarginStorage(path_to_inputs=os.path.join(path, name, "classifier_outputs")),
                                                     path_to_outputs=os.path.join(path, name, "datamodel_outputs")),
         notes="This experiment was performed after implementing additional filtering of the data to remove features that were not human or that had failed the column check, as well as MAPT or APP."
     )
@@ -200,7 +200,7 @@ def ace_plasma_proteomics_amnestic_experiment() -> Experiment: # TODO: The overw
         dm_n_train=500000,
         dm_n_test=500000,
         datamodels_pipeline=DatamodelsPipelineBasic(datamodel_factory=LinearRegressionFactory(),
-                                                    path_to_inputs=os.path.join(path, name, "classifier_outputs"),
+                                                    combined_mask_margin_storage=CombinedMaskMarginStorage(path_to_inputs=os.path.join(path, name, "classifier_outputs")),
                                                     path_to_outputs=os.path.join(path, name, "datamodel_outputs")),
         notes="This experiment was performed after implementing additional filtering of the data to remove features that were not human or that had failed the column check, as well as MAPT or APP."
     )
@@ -235,7 +235,7 @@ def ace_plasma_csf_proteomics_amnestic_experiment() -> Experiment: # TODO: The o
         dm_n_train=500000,
         dm_n_test=500000,
         datamodels_pipeline=DatamodelsPipelineBasic(datamodel_factory=LinearRegressionFactory(),
-                                                    path_to_inputs=os.path.join(path, name, "classifier_outputs"),
+                                                    combined_mask_margin_storage=CombinedMaskMarginStorage(path_to_inputs=os.path.join(path, name, "classifier_outputs")),
                                                     path_to_outputs=os.path.join(path, name, "datamodel_outputs")),
         notes="This experiment was performed after implementing additional filtering of the data to remove features that were not human or that had failed the column check, as well as MAPT or APP."
     )
@@ -273,7 +273,7 @@ def ace_csf_proteomics_age_experiment() -> Experiment: # TODO: The overwrite con
         dm_n_train=500000,
         dm_n_test=500000,
         datamodels_pipeline=DatamodelsPipelineBasic(datamodel_factory=LinearRegressionFactory(),
-                                                    path_to_inputs=os.path.join(path, name, "classifier_outputs"),
+                                                    combined_mask_margin_storage=CombinedMaskMarginStorage(path_to_inputs=os.path.join(path, name, "classifier_outputs")),
                                                     path_to_outputs=os.path.join(path, name, "datamodel_outputs")),
         notes="This experiment was performed after implementing additional filtering of the data to remove features that were not human or that had failed the column check."
     )
