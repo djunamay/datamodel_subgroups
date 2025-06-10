@@ -43,7 +43,7 @@ class CombinedMaskMarginStorage(CombinedMaskMarginStorageInterface):
     
     @staticmethod
     def _completed_models_bool(srcs):
-        temp =[np.sum(src,axis=1)!=0 for src in srcs]
+        temp =[src!=0 for src in srcs]
         return np.hstack(temp)
     
     @staticmethod
@@ -67,9 +67,11 @@ class CombinedMaskMarginStorage(CombinedMaskMarginStorageInterface):
     
     @cached_property
     def _model_completed_masks(self):
+        in_paths_acc = self._find_files(self.path_to_inputs, 'test_accuracies')
+        srcs_acc  = [np.lib.format.open_memmap(p, mode="r") for p in in_paths_acc]
+        completed_masks = self._completed_models_bool(srcs_acc)
         in_paths = self._find_files(self.path_to_inputs, 'masks')
         srcs  = [np.lib.format.open_memmap(p, mode="r") for p in in_paths]
-        completed_masks = self._completed_models_bool(srcs)
         duplicates_masks = self._mask_to_signatures(srcs)
         mask = self._combined_masks(completed_masks, duplicates_masks)
         return self._split_masks(mask, srcs)
