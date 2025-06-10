@@ -101,7 +101,10 @@ class DatamodelsPipelineBasic(DatamodelsPipelineInterface):
         Fit one datamodel (i.e. for one sample).
         """
         X, y = self._get_samples_for_model(masks, margins, sample_index)
-        X, y = shuffle(X, y, random_state=seed_shuffle)
+        if n_test is not None:
+            X, y = shuffle(X[:n_train+n_test], y[:n_train+n_test], random_state=seed_shuffle) # reduce total matrix size for shuffling
+        else:
+            X, y = shuffle(X, y, random_state=seed_shuffle)
         model = self.datamodel_factory.build_model(seed=seed_fit)
         X_train, y_train = self._train_samples(X, y, n_train)
         model.fit(X_train, y_train)
@@ -140,12 +143,8 @@ class DatamodelsPipelineBasic(DatamodelsPipelineInterface):
             - If `in_memory=False`: returns a string path to the output location on disk.
         """
         rngs_fit, rngs_shuffle = self._rng(seed)
-        if n_test is not None:
-            masks = self._masks[:n_train+n_test]
-            margins = self._margins[:n_train+n_test]
-        else:
-            masks = self._masks
-            margins = self._margins
+        masks = self._masks
+        margins = self._margins
 
         weights = self._create_array(in_memory, None if in_memory else os.path.join(self.path_to_outputs, f"batch_{seed}_weights.npy"),
             np.float32, (len(indices), masks.shape[1])
