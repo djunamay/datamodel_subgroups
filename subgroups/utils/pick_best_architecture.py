@@ -1,6 +1,7 @@
 import json
 import numpy as np
 import glob
+import pandas as pd
 
 def load_model_architecture_at_index(file_path, index):
     """
@@ -32,6 +33,9 @@ def load_json_numbers_as_array(file_path):
         data = [json.loads(line) for line in f]
     return np.array(data)
 
+def find_files_with_prefix(directory, prefix):
+    pattern = f"{directory}/{prefix}*.json"
+    return sorted(glob.glob(pattern))
 
 def find_test_accuracy_files(directory):
     pattern = f"{directory}/test_accuracy_*.json"
@@ -40,6 +44,18 @@ def find_test_accuracy_files(directory):
 def find_snr_files(directory):
     pattern = f"{directory}/snr_*.json"
     return sorted(glob.glob(pattern))
+
+def find_mask_factory_files(directory):
+    pattern = f"{directory}/mask_factory_*.json"
+    return sorted(glob.glob(pattern))
+
+def return_mask_factory_data(directory):
+    mask = load_json_numbers_as_array(directory)
+    mask = [i['alpha'] for i in mask]
+    index = int(directory.split('.json')[0].split('_')[-1])
+    batch = np.repeat(index, len(mask))
+    data = np.concatenate([batch.reshape(-1,1), np.array(mask).reshape(-1,1)], axis=1)
+    return data
 
 def return_test_accuracy_data(directory):
     accs = load_json_numbers_as_array(directory)
@@ -53,6 +69,15 @@ def return_snr_data(directory):
     index = int(directory.split('.json')[0].split('_')[-1])
     batch = np.repeat(index, len(snrs))
     data = np.concatenate([batch.reshape(-1,1), snrs.reshape(-1,1)], axis=1)
+    return data
+
+def return_snr_alpha_data(directory):
+    snr_paths = find_snr_files(directory)
+    mask_factory_paths = find_mask_factory_files(directory)
+    snr_data = np.concatenate([return_snr_data(path) for path in snr_paths])
+    mask_factory_data = np.concatenate([return_mask_factory_data(path) for path in mask_factory_paths])
+    data = np.concatenate([snr_data, mask_factory_data], axis=1)
+    data = pd.DataFrame(data[:,[0,1,3]], columns=['batch', 'snr', 'alpha'])
     return data
 
 def return_best_model_index(directory, acc_cutoff=0.8):
