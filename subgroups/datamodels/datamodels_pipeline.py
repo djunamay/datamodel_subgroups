@@ -6,7 +6,7 @@ import os
 import chz
 from sklearn.utils import shuffle
 from tqdm import tqdm
-from scipy.stats import pearsonr
+from scipy.stats import pearsonr, spearmanr
 from typing import Optional, Union
 from numpy.typing import NDArray
 import glob
@@ -110,12 +110,14 @@ class DatamodelsPipelineBasic(DatamodelsPipelineInterface):
         model.fit(X_train, y_train)
         X_test, y_test = self._test_samples(X, y, n_train, n_test)
         y_hat = model.predict(X_test)
-        correlation = pearsonr(y_test, y_hat)[0]
+        p_correlation = pearsonr(y_test, y_hat)[0]
+        s_correlation = spearmanr(y_test, y_hat)[0]
         rmse = root_mean_squared_error(y_test, y_hat)
         
         return {'weights': model.coef_, 
                 'bias': model.intercept_, 
-                'correlation': correlation,
+                'p_correlation': p_correlation,
+                's_correlation': s_correlation,
                 'rmse': rmse}
     
 
@@ -152,7 +154,10 @@ class DatamodelsPipelineBasic(DatamodelsPipelineInterface):
         biases = self._create_array(in_memory, None if in_memory else os.path.join(self.path_to_outputs, f"batch_{seed}_biases.npy"),
             np.float32, (len(indices),)
         )
-        correlations = self._create_array(in_memory, None if in_memory else os.path.join(self.path_to_outputs, f"batch_{seed}_correlations.npy"),
+        p_correlations = self._create_array(in_memory, None if in_memory else os.path.join(self.path_to_outputs, f"batch_{seed}_pearson_correlations.npy"),
+            np.float32, (len(indices),)
+        )
+        s_correlations = self._create_array(in_memory, None if in_memory else os.path.join(self.path_to_outputs, f"batch_{seed}_spearman_correlations.npy"),
             np.float32, (len(indices),)
         )
         rmse = self._create_array(in_memory, None if in_memory else os.path.join(self.path_to_outputs, f"batch_{seed}_rmse.npy"),
@@ -166,13 +171,15 @@ class DatamodelsPipelineBasic(DatamodelsPipelineInterface):
             model = self._fit_one_model(masks, margins, sample_index, fit_rng, shuffle_rng, n_train, n_test)
             weights[i] = model['weights']
             biases[i] = model['bias']
-            correlations[i] = model['correlation']
+            p_correlations[i] = model['p_correlation']
+            s_correlations[i] = model['s_correlation']
             rmse[i] = model['rmse']
 
         if in_memory:
             return {'weights': weights, 
                     'biases': biases, 
-                    'correlations': correlations,
+                    'p_correlations': p_correlations,
+                    's_correlations': s_correlations,
                     'rmse': rmse}
         else:
             np.save(os.path.join(self.path_to_outputs, f"batch_{seed}_sample_indices.npy"), indices, allow_pickle=False)
