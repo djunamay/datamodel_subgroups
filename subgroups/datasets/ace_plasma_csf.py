@@ -24,6 +24,7 @@ class AceDatasetPlasmaCSF(BaseDataset):
     path_to_feature_meta_data_plasma: str = chz.field(doc="Path to the feature info", default='/home/Genomica/03-Collabs/djuna/data/HARPONE-Somalogic_Plasma_Annotations_anmlSMP.xlsx')
     path_to_sample_meta_data_dictionary: str = chz.field(doc="Path to the data dictionary", default='/home/Genomica/03-Collabs/djuna/clinical_data_ACE/202406_FACE_data_dictionary_CSF.xlsx')
     split: str = chz.field(doc="coarse label to use for training", default='amnestic')
+    n_components: int = chz.field(doc="number of components to use for PCA", default=50)
     
     @staticmethod
     def _calculate_age(birth_date, reference_date):
@@ -191,7 +192,7 @@ class AceDatasetPlasmaCSF(BaseDataset):
         """
         Reduced dimensionality CSF data and subsetted to the samples that are within 155 days of the cognitive assessment.
         """
-        return self._reduce_dimensionality(self._full_csf_data.loc[self._samples_to_keep].values.astype(float))
+        return self._reduce_dimensionality(self._full_csf_data.loc[self._samples_to_keep].values.astype(float), self.n_components)
 
     @property
     def _filtered_meta_data(self):

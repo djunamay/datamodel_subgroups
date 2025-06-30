@@ -47,7 +47,8 @@ def ace_plasma_csf_proteomics() -> AceDatasetPlasmaCSF:
         path_to_data = '/home/Genomica/03-Collabs/djuna/data/202112_Somascan_harpone_db_CSF_ACE_n1370.txt',
         path_to_sample_meta_data = '/home/Genomica/03-Collabs/djuna/data/202406_shared_clinicaldb_CSF_ACE_n1370.txt',
         path_to_feature_meta_data_csf = '/home/Genomica/03-Collabs/djuna/data/HARPONE-Somalogic_CSF_Annotations_anmlSMP.xlsx',
-        path_to_feature_meta_data_plasma = '/home/Genomica/03-Collabs/djuna/data/HARPONE-Somalogic_Plasma_Annotations_anmlSMP.xlsx'    
+        path_to_feature_meta_data_plasma = '/home/Genomica/03-Collabs/djuna/data/HARPONE-Somalogic_Plasma_Annotations_anmlSMP.xlsx',
+        n_components=500
     )
 
 def rosmap_singlecell() -> RosmapSingleCellDataset:

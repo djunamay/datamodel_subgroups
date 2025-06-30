@@ -142,7 +142,7 @@ def random_dataset_experiment() -> Experiment:
 def ace_csf_proteomics_amnestic_experiment() -> Experiment: # TODO: The overwrite config doesn't work well when running the snr pipeline as independent batches with different seeds - Need to set overwrite to True then since the best model architecture can change over time. Fix this config issue.
     # TODO: overridable works but not recurisvely and means that the config file is not well-documented
     path = "/home/Genomica/03-Collabs/djuna/results/"
-    name = "ace_csf_proteomics_amnestic_experiment"
+    name = "ace_csf_proteomics_amnestic_experiment_june_30"
     try:
         parameters, alpha = return_best_model_architecture(os.path.join(path, name, "snr_outputs"), acc_cutoff=0)
         mask_factory = fixed_alpha_mask_factory(**alpha)
@@ -212,7 +212,7 @@ def ace_plasma_proteomics_amnestic_experiment() -> Experiment: # TODO: The overw
 def ace_plasma_csf_proteomics_amnestic_experiment() -> Experiment: # TODO: The overwrite config doesn't work well when running the snr pipeline as independent batches with different seeds - Need to set overwrite to True then since the best model architecture can change over time. Fix this config issue.
     # TODO: overridable works but not recurisvely and means that the config file is not well-documented
     path = "/home/Genomica/03-Collabs/djuna/results/"
-    name = "ace_plasma__csf_proteomics_amnestic_experiment"
+    name = "ace_plasma_csf_proteomics_amnestic_experiment_june_30"
     try:
         parameters, alpha = return_best_model_architecture(os.path.join(path, name, "snr_outputs"), acc_cutoff=0)
         mask_factory = fixed_alpha_mask_factory(**alpha)
@@ -238,6 +238,8 @@ def ace_plasma_csf_proteomics_amnestic_experiment() -> Experiment: # TODO: The o
         indices_to_fit=SequentialIndices(batch_size=1171),
         dm_n_train=500000,
         dm_n_test=500000,
+        npcs_min=5,
+        npcs_max=500,
         datamodels_pipeline=DatamodelsPipelineBasic(datamodel_factory=LinearRegressionFactory(),
                                                     combined_mask_margin_storage=CombinedMaskMarginStorage(path_to_inputs=os.path.join(path, name, "classifier_outputs")),
                                                     path_to_outputs=os.path.join(path, name, "datamodel_outputs")),
