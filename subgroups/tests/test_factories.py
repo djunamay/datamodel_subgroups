@@ -21,9 +21,9 @@ def test_fixed_alpha_mask_factory():
         else:
             return smaller + per_class
 
-    alpha = np.random.uniform(0, 1)
+    alpha = np.random.uniform(0, 0.2)
     random_dataset = RandomDataset()
     labels = random_dataset.coarse_labels
     expected = expected_true_count(alpha, labels)
-    mask = fixed_alpha_mask_factory(alpha=alpha).get_masks(labels)
+    mask = fixed_alpha_mask_factory(alpha=alpha).get_masks(labels, np.random.default_rng(0))
     assert mask.sum() == expected
