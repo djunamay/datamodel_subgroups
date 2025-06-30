@@ -11,6 +11,7 @@ from typing import Optional, Union
 from numpy.typing import NDArray
 import glob
 from sklearn.metrics import root_mean_squared_error
+from ..utils.random import fork_rng
 Array = Union[np.ndarray, np.memmap]
 
 @chz.chz
@@ -36,10 +37,8 @@ class DatamodelsPipelineBasic(DatamodelsPipelineInterface):
         """
         Generate two independent random number generators.
         """
-        seq = np.random.SeedSequence(seed)
-        rngs_fit = np.random.default_rng(seq.spawn(1)[0])
-        rngs_shuffle = np.random.default_rng(seq.spawn(1)[0])
-        return rngs_fit, rngs_shuffle
+        rngs = fork_rng(np.random.default_rng(seed), 2)
+        return rngs[0], rngs[1]
 
     @staticmethod
     def _create_array(in_memory: bool, path: Optional[str], dtype: np.dtype, shape: tuple[int, int]) -> Array:
@@ -166,7 +165,7 @@ class DatamodelsPipelineBasic(DatamodelsPipelineInterface):
         for i, sample_index in tqdm(enumerate(indices), total=len(indices)):
             fit_rng = rngs_fit.integers(0, 2**32 - 1)
             shuffle_rng = rngs_shuffle.integers(0, 2**32 - 1)
-            if not correlations[i]==0:
+            if not p_correlations[i]==0:
                 continue
             model = self._fit_one_model(masks, margins, sample_index, fit_rng, shuffle_rng, n_train, n_test)
             weights[i] = model['weights']

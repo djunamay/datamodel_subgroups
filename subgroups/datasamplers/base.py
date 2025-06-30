@@ -14,7 +14,7 @@ class MaskFactory():
     ensuring flexibility in how subsets are chosen (e.g., balanced, random, or stratified).
     """
 
-    def get_masks(self, labels: NDArray[bool], seed: int = None) -> NDArray[bool]:
+    def get_masks(self, labels: NDArray[bool], rng: np.random.Generator) -> NDArray[bool]:
         """
         Generate a boolean mask to select samples for training.
 
@@ -22,8 +22,8 @@ class MaskFactory():
         ----------
         labels : NDArray[bool]
             Binary array indicating class membership of samples (`True` or `False`).
-        seed : int, optional
-            Random seed for reproducibility. Defaults to None.
+        rng : np.random.Generator
+            Random number generator for reproducibility.
 
         Returns
         -------
@@ -35,7 +35,7 @@ class MaskFactory():
 @chz.chz
 class MaskFactoryInitializer:
 
-    def build_mask_factory(self, seed: int) -> MaskFactory:
+    def build_mask_factory(self, rng: np.random.Generator) -> MaskFactory:
         ...
 
 
@@ -69,28 +69,28 @@ class RandomGeneratorSNRInterface(ABC):
     
     # ---------- fresh-per-call seeds -------------
     @abstractmethod
-    def model_build_seed(self) -> int: 
+    def model_build_rng(self) -> np.random.Generator: 
         """
         Produce a *fresh* seed for the model build method (ModelFactory.build_model(seed=...)) on every call.
         """
         ...
 
     @abstractmethod
-    def train_data_shuffle_seed(self) -> int: 
+    def train_data_shuffle_rng(self) -> np.random.Generator: 
         """
         Produce a *fresh* seed for the train data shuffle (train_one_classifier(shuffle_seed=...)) on every call.
         """
         ...
 
     @abstractmethod
-    def model_factory_seed(self) -> int: 
+    def model_factory_rng(self) -> np.random.Generator: 
         """
         Produce a *fresh* seed for the model factory (class ModelFactoryInitializer.build_model_factory(seed=...)) on every call.
         """
         ...
 
     @abstractmethod
-    def mask_factory_seed(self) -> int: 
+    def mask_factory_rng(self) -> np.random.Generator: 
         """
         Produce a *fresh* seed for the mask factory (class MaskFactoryInitializer.build_mask_factory(seed=...)) on every call.
         """
@@ -111,21 +111,21 @@ class RandomGeneratorTCInterface(ABC):
     """
 
     @abstractmethod
-    def model_build_seed(self) -> int:
+    def model_build_rng(self) -> np.random.Generator:
         """
         Produce a *fresh* seed for the model build method (ModelFactory.build_model(seed=...)) on every call.
         """
         ...
 
     @abstractmethod
-    def mask_seed(self) -> int:
+    def mask_rng(self) -> np.random.Generator:
         """
         Produce a *fresh* seed for the mask factory (MaskFactory.get_masks(seed=...)) on every call.
         """
         ...
 
     @abstractmethod
-    def train_data_shuffle_seed(self) -> int:
+    def train_data_shuffle_rng(self) -> np.random.Generator:
         """
         Produce a *fresh* seed for the train data shuffle (train_one_classifier(shuffle_seed=...)) on every call.
         """
