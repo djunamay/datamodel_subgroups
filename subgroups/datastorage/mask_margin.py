@@ -29,8 +29,8 @@ class MaskMarginStorage(MaskMarginStorageInterface):
         Flag to determine if data is stored in memory. Default is True.
     path : Optional[str], optional
         Path for memory-mapped files if not in memory. Default is None.
-    mask_seed : Optional[int], optional
-        Seed for mask generation, from which random number generator is initialized from which seeds are drawn for each mask. Default is None.
+    rng : Optional[np.random.Generator], optional
+        Random number generator for mask generation. Default is None.
     """
     n_models: int
     n_samples: int
@@ -38,7 +38,8 @@ class MaskMarginStorage(MaskMarginStorageInterface):
     mask_factory: MaskFactory
     in_memory: bool = True
     path: Optional[str] = None   
-    mask_seed: Optional[int] = None
+    rng: Optional[np.random.Generator] = np.random.default_rng(0)
+    batch_starter_seed: int = 0
 
     def __post_init__(self):
         """
@@ -87,22 +88,6 @@ class MaskMarginStorage(MaskMarginStorageInterface):
 
         #return np.memmap(path, dtype=dtype, mode=mode, shape=shape)
 
-    @staticmethod
-    def _rng(seed: int) -> np.random.Generator:
-        """
-        Initialize a random number generator with a specified seed.
-
-        Parameters
-        ----------
-        seed : int
-            Seed for random number generation.
-
-        Returns
-        -------
-        np.random.Generator
-            Initialized random number generator.
-        """
-        return np.random.default_rng(seed)
     
     @staticmethod
     def _populate_masks(mask_factory: MaskFactory, array: Array, labels: NDArray[bool], rng: np.random.Generator):
@@ -126,7 +111,7 @@ class MaskMarginStorage(MaskMarginStorageInterface):
             Array populated with masks.
         """
         for i in range(len(array)):
-            array[i] = mask_factory.get_masks(labels, rng.integers(0, 2**32 - 1))
+            array[i] = mask_factory.get_masks(labels, rng)
         return array
 
     @cached_property
@@ -134,13 +119,13 @@ class MaskMarginStorage(MaskMarginStorageInterface):
         """
         Masks array (shape: [n_models, n_samples]).
         """
-        path = None if self.in_memory else os.path.join(self.path, f"batch_{self.mask_seed}_masks.npy")
+        path = None if self.in_memory else os.path.join(self.path, f"batch_{self.batch_starter_seed}_masks.npy")
         populate_masks = True if self.in_memory or not os.path.exists(path) else False
         temporary_masks = self._create_array(self.in_memory, path,
             bool, (self.n_models, self.n_samples)
         )
         if populate_masks:
-            return self._populate_masks(self.mask_factory, temporary_masks, self.labels, self._rng(self.mask_seed))
+            return self._populate_masks(self.mask_factory, temporary_masks, self.labels, self.rng)
         else:
             return temporary_masks
 
@@ -149,7 +134,7 @@ class MaskMarginStorage(MaskMarginStorageInterface):
         """
         Margins array (shape: [n_models, n_samples]).
         """
-        return self._create_array(self.in_memory, None if self.in_memory else os.path.join(self.path, f"batch_{self.mask_seed}_margins.npy"),
+        return self._create_array(self.in_memory, None if self.in_memory else os.path.join(self.path, f"batch_{self.batch_starter_seed}_margins.npy"),
             np.float32, (self.n_models, self.n_samples)
         )
 
@@ -158,7 +143,7 @@ class MaskMarginStorage(MaskMarginStorageInterface):
         """
         Test accuracies array (shape: [n_models]).
         """
-        return self._create_array(self.in_memory, None if self.in_memory else os.path.join(self.path, f"batch_{self.mask_seed}_test_accuracies.npy"), 
+        return self._create_array(self.in_memory, None if self.in_memory else os.path.join(self.path, f"batch_{self.batch_starter_seed}_test_accuracies.npy"), 
             np.float32, (self.n_models,)
         )
     

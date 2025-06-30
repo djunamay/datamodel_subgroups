@@ -66,7 +66,7 @@ def gtex_subset_experiment_home() -> Experiment:
         path_to_meta_data='../subgroups_data/gtex/GTEx_Analysis_v10_Annotations_SampleAttributesDS.txt',
         path_to_sample_metadata='../subgroups_data/gtex/GTEx_Analysis_v10_Annotations_SubjectPhenotypesDS.txt',
         predicted_class='Esophagus',
-        n_components=5
+        n_components=500
     ),
         mask_factory=mask_factory,
         model_factory=model_factory,
@@ -83,8 +83,10 @@ def gtex_subset_experiment_home() -> Experiment:
         indices_to_fit=SequentialIndices(batch_size=50),
         dm_n_train=9000,
         dm_n_test=1000,
+        npcs_min=5,
+        npcs_max=500,
         datamodels_pipeline=DatamodelsPipelineBasic(datamodel_factory=LinearRegressionFactory(),
-                                                    path_to_inputs=os.path.join(path, name, "classifier_outputs"),
+                                                    combined_mask_margin_storage=CombinedMaskMarginStorage(path_to_inputs=os.path.join(path, name, "classifier_outputs")),
                                                     path_to_outputs=os.path.join(path, name, "datamodel_outputs")),
     )
 
@@ -116,6 +118,8 @@ def gtex_subset_experiment() -> Experiment:
         indices_to_fit=SequentialIndices(batch_size=50),
         dm_n_train=1500000,
         dm_n_test=500000,
+        npcs_min=5,
+        npcs_max=500,
         datamodels_pipeline=DatamodelsPipelineBasic(datamodel_factory=LinearRegressionFactory(),
                                                     combined_mask_margin_storage=CombinedMaskMarginStorage(path_to_inputs=os.path.join(path, name, "classifier_outputs")),
                                                     path_to_outputs=os.path.join(path, name, "datamodel_outputs")),

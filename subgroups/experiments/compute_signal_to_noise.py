@@ -53,6 +53,8 @@ class ComputeSNRArgs:
     model_factory: ModelFactory
     random_generator: RandomGeneratorSNRInterface
     stopping_condition: StoppingConditionInterface
+    npcs_min: int = 5
+    npcs_max: int = 50
 
     n_models: int  = 20           # train-split count
     n_passes: int  = 15           # model re-initialisations per split
@@ -93,6 +95,8 @@ class ComputeSNRArgsMultipleArchitectures:
     n_models: int
     n_passes: int
     in_memory: bool
+    npcs_min: int = 5
+    npcs_max: int = 50
 
     n_architectures: int
     path_to_results: str
@@ -125,7 +129,9 @@ def _mk_snr_args(args: ComputeSNRArgsMultipleArchitectures, mask_factory: MaskFa
                          n_models=args.n_models, 
                          n_passes=args.n_passes, 
                          random_generator=args.random_generator,
-                         stopping_condition=args.stopping_condition)
+                         stopping_condition=args.stopping_condition,
+                         npcs_min=args.npcs_min,
+                         npcs_max=args.npcs_max)
 
 def snr_inputs_for_one_architecture(args: ComputeSNRArgs) -> tuple[np.ndarray, float]:
     """
@@ -157,7 +163,8 @@ def snr_inputs_for_one_architecture(args: ComputeSNRArgs) -> tuple[np.ndarray, f
         bins = [(i, i + 50) for i in range(0, args.n_models, 50)]
 
     train_args = _mk_train_args(args)
-    storage = _make_storage(train_args, args.dataset)
+    storage = _make_storage(train_args, args.dataset, args.random_generator.batch_starter_seed)
+    n_pcs = args.random_generator._rngs_n_pcs_seed.integers(args.npcs_min, args.npcs_max)
 
 
     for bin in bins:
@@ -168,9 +175,8 @@ def snr_inputs_for_one_architecture(args: ComputeSNRArgs) -> tuple[np.ndarray, f
 
                 for i in np.arange(start, stop):
                     mask = storage.masks[i]
-                    clf   = args.model_factory.build_model(seed=args.random_generator.model_build_seed)
-                    rng_s = args.random_generator.train_data_shuffle_seed
-                    margins_temp, acc = fit_single_classifier(args.dataset.features, args.dataset.coarse_labels, mask, clf, rng_s)
+                    clf   = args.model_factory.build_model(rng=args.random_generator.model_build_rng)
+                    margins_temp, acc = fit_single_classifier(args.dataset.features[:, :n_pcs], args.dataset.coarse_labels, mask, clf, args.random_generator.train_data_shuffle_rng)
                     storage.fill_results(i, margins_temp, acc)
 
                 masks[p][start:stop]   = storage.masks[start:stop]
@@ -179,9 +185,9 @@ def snr_inputs_for_one_architecture(args: ComputeSNRArgs) -> tuple[np.ndarray, f
         print(f"Checking stopping condition after {stop} models")
         if args.stopping_condition.evaluate_stopping(margins[:,:stop,:], masks[:,:stop,:]):
             print(f"Stopping condition met after {stop} models")
-            return margins[:,:stop,:], masks[:,:stop,:], storage.test_accuracies[:stop].mean() # TODO: test_accuracy is only averaged over 50 masks (1 bin - i.e. last storage). Might want to increase this to get a better estimate.
+            return margins[:,:stop,:], masks[:,:stop,:], storage.test_accuracies[:stop].mean(), n_pcs # TODO: test_accuracy is only averaged over 50 masks (1 bin - i.e. last storage). Might want to increase this to get a better estimate.
         
-    return margins, masks, storage.test_accuracies.mean()
+    return margins, masks, storage.test_accuracies.mean(), n_pcs
 
 
 
@@ -207,15 +213,16 @@ def compute_snr_for_multiple_architectures(args: ComputeSNRArgsMultipleArchitect
 
     for i in range(n_architectures):
         print(f"Computing signal-to-noise ratio for architecture {i}", end="\n" + "-"*len(f"Computing signal-to-noise ratio for architecture {i}") + "\n")
-        new_mask_factory = args.mask_factory_initializer.build_mask_factory(args.random_generator.mask_factory_seed)
-        new_model_factory = args.model_factory_initializer.build_model_factory(args.random_generator.model_factory_seed)
-        margins, masks, test_accuracy = snr_inputs_for_one_architecture(_mk_snr_args(args, new_mask_factory, new_model_factory))
+        new_mask_factory = args.mask_factory_initializer.build_mask_factory(args.random_generator.mask_factory_rng)
+        new_model_factory = args.model_factory_initializer.build_model_factory(args.random_generator.model_factory_rng)
+        margins, masks, test_accuracy, n_pcs = snr_inputs_for_one_architecture(_mk_snr_args(args, new_mask_factory, new_model_factory))
         snr = compute_signal_noise(margins, masks)
         snr_out[i] = snr
 
         if not args.in_memory:
             write_chz_class_to_json(new_model_factory, os.path.join(args.path_to_results, f"model_factory_{args.random_generator.batch_starter_seed}.json"), indent=None)
             write_chz_class_to_json(new_mask_factory, os.path.join(args.path_to_results, f"mask_factory_{args.random_generator.batch_starter_seed}.json"), indent=None)
+            append_float_ndjson(n_pcs, os.path.join(args.path_to_results, f"n_pcs_{args.random_generator.batch_starter_seed}.json"))
             append_float_ndjson(test_accuracy, os.path.join(args.path_to_results, f"test_accuracy_{args.random_generator.batch_starter_seed}.json"))
             append_float_ndjson(np.nanmean(snr), os.path.join(args.path_to_results, f"snr_{args.random_generator.batch_starter_seed}.json")) 
 
