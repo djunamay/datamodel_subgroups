@@ -1,7 +1,7 @@
 # std-lib
 from pathlib import Path
 import warnings
-
+import random
 # third-party
 import numpy as np
 from numpy.typing import NDArray
@@ -19,7 +19,7 @@ from ..datastorage.mask_margin import MaskMarginStorage
 from ..datastorage.base import MaskMarginStorageInterface
 import chz
 from sklearn.model_selection import train_test_split
-
+from ..utils.random import fork_rng
 @chz.chz
 class TrainClassifiersArgs:
     """
@@ -55,7 +55,7 @@ class TrainClassifiersArgs:
     path: Optional[str] = chz.field(default=None, doc='Path for storing results if not in memory.')
     random_generator: RandomGeneratorTCInterface = chz.field(default=None, doc='Random generator for training the classifier.')
 
-def _make_storage(args: TrainClassifiersArgs, ds: DatasetInterface) -> MaskMarginStorageInterface:
+def _make_storage(args: TrainClassifiersArgs, ds: DatasetInterface, batch_starter_seed: int) -> MaskMarginStorageInterface:
     return MaskMarginStorage(
         args.n_models,
         ds.num_samples,
@@ -63,7 +63,8 @@ def _make_storage(args: TrainClassifiersArgs, ds: DatasetInterface) -> MaskMargi
         args.mask_factory,
         args.in_memory,
         args.path,
-        args.random_generator.batch_starter_seed,
+        args.random_generator.mask_rng,
+        batch_starter_seed
     )
 
 def _call_storage_warning(mask_shape, n_models):
@@ -76,7 +77,7 @@ def _call_storage_warning(mask_shape, n_models):
             UserWarning,
         )
 
-def fit_single_classifier(features: NDArray[np.float32], labels: NDArray[bool], mask: NDArray[bool], model: SklearnClassifier, shuffle_seed: int):
+def fit_single_classifier(features: NDArray[np.float32], labels: NDArray[bool], mask: NDArray[bool], model: SklearnClassifier, shuffle_rng: np.random.Generator):
     """
     Train a single classifier and compute margins and test accuracy.
 
@@ -100,15 +101,16 @@ def fit_single_classifier(features: NDArray[np.float32], labels: NDArray[bool], 
     test_accuracy : float
         Accuracy of the model on the test set.
     """
-    features_shuffled, labels_shuffled = shuffle(features[mask], labels[mask], random_state=shuffle_seed) 
+    random_state = np.random.RandomState(shuffle_rng.bit_generator)
+    features_shuffled, labels_shuffled = shuffle(features[mask], labels[mask], random_state=random_state) 
     model.fit(features_shuffled, labels_shuffled) 
     tl, tf = labels[~mask], features[~mask]
-    _, test_features, _, test_labels  = train_test_split(tf, tl, stratify=tl, test_size=min(tl.sum(), (~tl).sum()), random_state=2) # balance the test data by label
+    _, test_features, _, test_labels  = train_test_split(tf, tl, stratify=tl, test_size=min(tl.sum(), (~tl).sum()), random_state=random_state) # balance the test data by label
     test_accuracy = model.score(test_features, test_labels)
     margins = compute_margins(model.predict_proba(features)[:,1], labels)
     return margins, test_accuracy
 
-def run_training_batch(args: TrainClassifiersArgs):
+def run_training_batch(args: TrainClassifiersArgs, batch_starter_seed: int):
     """
     Train multiple classifiers and store the results in a mask margin storage object.
 
@@ -125,18 +127,19 @@ def run_training_batch(args: TrainClassifiersArgs):
         the training results. Otherwise, returns the path to the stored results.
     """
     ds = args.dataset
-    storage = _make_storage(args, ds)
+    storage = _make_storage(args, ds, batch_starter_seed)
     _call_storage_warning(storage.masks.shape[0], args.n_models)
 
+    build_model_rngs_children = fork_rng(args.random_generator.model_build_rng, args.n_models)
+    train_data_shuffle_rngs_children = fork_rng(args.random_generator.train_data_shuffle_rng, args.n_models)
+
     for i, mask in tqdm(enumerate(storage.masks), desc='Training classifiers', total=args.n_models):
-        rng_s = args.random_generator.train_data_shuffle_seed
-        rng_m = args.random_generator.model_build_seed
         
         if storage.is_filled(i):
             continue
 
-        clf   = args.model_factory.build_model(seed=rng_m)
-        margins, acc = fit_single_classifier(ds.features, ds.coarse_labels, mask, clf, rng_s)
+        clf = args.model_factory.build_model(rng=build_model_rngs_children[i])
+        margins, acc = fit_single_classifier(ds.features, ds.coarse_labels, mask, clf, train_data_shuffle_rngs_children[i])
         storage.fill_results(i, margins, acc)
 
     return storage if storage.in_memory else storage.path

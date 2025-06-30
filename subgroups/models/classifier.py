@@ -40,24 +40,8 @@ class XgbFactory(ModelFactory):
     gamma: float = chz.field(default=0.0, doc='Minimum loss reduction required to make a split')
     min_child_weight: float = chz.field(default=1, doc='Minimum sum of instance weight (hessian) needed in a child')
 
-    @staticmethod
-    def _random_state(seed: int) -> np.random.RandomState:
-        """
-        Initialize a random state with a specified seed.
-
-        Parameters
-        ----------
-        seed : int
-            Seed for random number generation.
-
-        Returns
-        -------
-        np.random.RandomState
-            Initialized random state.
-        """
-        return np.random.default_rng(seed)
     
-    def build_model(self, seed: int = None) -> SklearnClassifier:
+    def build_model(self, rng: np.random.Generator) -> SklearnClassifier:
         """
         Construct an XGBClassifier instance with the specified hyperparameters.
 
@@ -80,7 +64,7 @@ class XgbFactory(ModelFactory):
                              colsample_bytree=self.colsample_bytree, 
                              gamma=self.gamma, 
                              min_child_weight=self.min_child_weight,
-                             random_state=self._random_state(seed),
+                             random_state=rng,
                              base_score=0.5)
     
 
@@ -88,19 +72,19 @@ class XgbFactory(ModelFactory):
 @chz.chz
 class XgbFactoryInitializer(ModelFactoryInitializer):
 
-    @staticmethod
-    def _rngs(seed: int) -> dict[str, Generator]:
-        # one Generator per parameter so draws are independent yet reproducible
-        seq = np.random.SeedSequence(seed)
-        _rngs: dict[str, Generator] = {
-            name: np.random.default_rng(s)   # sub-seeds
-            for name, s in zip(
-                ["lr", "depth", "n_est", "l2", "l1",
-                 "subsample", "colsample", "gamma", "min_child"],
-                seq.spawn(9)
-            )
-        }
-        return _rngs
+    # @staticmethod
+    # def _rngs(seed: int) -> dict[str, Generator]:
+    #     # one Generator per parameter so draws are independent yet reproducible
+    #     seq = np.random.SeedSequence(seed)
+    #     _rngs: dict[str, Generator] = {
+    #         name: np.random.default_rng(s)   # sub-seeds
+    #         for name, s in zip(
+    #             ["lr", "depth", "n_est", "l2", "l1",
+    #              "subsample", "colsample", "gamma", "min_child"],
+    #             seq.spawn(9)
+    #         )
+    #     }
+    #     return _rngs
     
     @staticmethod
     def _learning_rate(_rngs: dict[str, Generator]) -> float:
@@ -110,7 +94,7 @@ class XgbFactoryInitializer(ModelFactoryInitializer):
     @staticmethod
     def _max_depth(_rngs: dict[str, Generator]) -> int:
         # integers 3 … 10.   >10 rarely helps and can explode RAM
-        return int(_rngs["depth"].integers(3, 11))
+        return int(_rngs.integers(3, 11))
 
     @staticmethod
     def _n_estimators(_rngs: dict[str, Generator]) -> int:
@@ -147,15 +131,14 @@ class XgbFactoryInitializer(ModelFactoryInitializer):
         # log-uniform 0.1 … 10
         return 10.0 ** _rngs["min_child"].uniform(-1.0, 1.0)
 
-    def build_model_factory(self, seed: int) -> ModelFactory:
-        _rngs = self._rngs(seed)
-        xgb_factory = XgbFactory(learning_rate=self._learning_rate(_rngs), 
-                                 max_depth=self._max_depth(_rngs), 
-                                 n_estimators=self._n_estimators(_rngs), 
-                                 reg_lambda=self._reg_lambda(_rngs), 
-                                 reg_alpha=self._reg_alpha(_rngs), 
-                                 subsample=self._subsample(_rngs), 
-                                 colsample_bytree=self._colsample_bytree(_rngs), 
-                                 gamma=self._gamma(_rngs), 
-                                 min_child_weight=self._min_child_weight(_rngs))
+    def build_model_factory(self, rng: np.random.Generator) -> ModelFactory:
+        xgb_factory = XgbFactory(#learning_rate=self._learning_rate(rng), 
+                                 max_depth=self._max_depth(rng)) 
+                                 #n_estimators=self._n_estimators(rng), 
+                                 #reg_lambda=self._reg_lambda(rng), 
+                                 #reg_alpha=self._reg_alpha(rng), 
+                                 #subsample=self._subsample(rng), 
+                                 #colsample_bytree=self._colsample_bytree(rng), 
+                                 #gamma=self._gamma(rng), 
+                                 #min_child_weight=self._min_child_weight(rng))
         return xgb_factory

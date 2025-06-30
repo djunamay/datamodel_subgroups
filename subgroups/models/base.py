@@ -12,18 +12,18 @@ class ModelFactory:
 
     Parameters
     ----------
-    seed : int, optional
-        Random seed for reproducibility. Defaults to None.
+    rng : np.random.Generator
+        Random number generator for reproducibility.
     """
 
-    def build_model(self, seed: int = None) -> SklearnClassifier:
+    def build_model(self, rng: np.random.Generator) -> SklearnClassifier:
         """
         Construct a SklearnClassifier instance.
 
         Parameters
         ----------
-        seed : int, optional
-            Random seed for reproducibility. Defaults to None.
+        rng : np.random.Generator
+            Random number generator for reproducibility.
 
         Returns
         -------
@@ -39,5 +39,5 @@ class ModelFactoryInitializer:
     Factory class for creating instances of ModelFactory.
     """
 
-    def build_model_factory(self, seed: int) -> ModelFactory:
+    def build_model_factory(self, rng: np.random.Generator) -> ModelFactory:
         ...

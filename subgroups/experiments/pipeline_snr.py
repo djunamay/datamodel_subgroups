@@ -25,7 +25,9 @@ def pipeline_snr(experiment: Experiment, batch_size: int, batch_starter_seed: in
                              n_architectures=batch_size,
                              model_factory_initializer=experiment.model_factory_initializer,
                              mask_factory_initializer=experiment.mask_factory_initializer,
-                             stopping_condition=experiment.stopping_condition) 
+                             stopping_condition=experiment.stopping_condition,
+                             npcs_min=experiment.npcs_min,
+                             npcs_max=experiment.npcs_max) 
     
     snr_out = compute_snr_for_multiple_architectures(args)
 
