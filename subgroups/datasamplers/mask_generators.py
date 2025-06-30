@@ -18,24 +18,8 @@ class fixed_alpha_mask_factory(MaskFactory):
     alpha: float = chz.field(default=0.5, doc='Proportion of the total dataset to include in the training mask (0 < alpha ≤ 1). Half of these samples are selected from each class to maintain balance.')
     min_test_fraction: float = chz.field(default=0.3)
 
-    @staticmethod
-    def _rng(seed: int) -> np.random.Generator:
-        """
-        Initialize a NumPy random number generator with a specified seed.
-
-        Parameters
-        ----------
-        seed : int
-            Seed for random number generation.
-
-        Returns
-        -------
-        np.random.Generator
-            Initialized random number generator.
-        """
-        return np.random.default_rng(seed)
     
-    def get_masks(self, labels: NDArray[bool], seed: int = None) -> NDArray[bool]:
+    def get_masks(self, labels: NDArray[bool], rng: np.random.Generator) -> NDArray[bool]:
         """
         Create a balanced mask selecting samples equally from both classes, based on the `alpha` value.
 
@@ -43,8 +27,8 @@ class fixed_alpha_mask_factory(MaskFactory):
         ----------
         labels : NDArray[bool]
             Binary array of class labels (`True` for positive class, `False` for negative).
-        seed : int, optional
-            Seed for reproducibility. Defaults to None.
+        rng : np.random.Generator
+            Random number generator for reproducibility.
 
         Returns
         -------
@@ -65,8 +49,8 @@ class fixed_alpha_mask_factory(MaskFactory):
             )
     
         mask = np.zeros(len(labels), dtype=bool)
-        mask[self._rng(seed).permutation(indices_class_1)[:samples_per_class]] = True
-        mask[self._rng(seed).permutation(indices_class_0)[:samples_per_class]] = True
+        mask[rng.permutation(indices_class_1)[:samples_per_class]] = True
+        mask[rng.permutation(indices_class_0)[:samples_per_class]] = True
         return mask
 
 @chz.chz
@@ -84,7 +68,6 @@ class fixed_alpha_mask_factory_initializer(MaskFactoryInitializer):
     lower_bound: float = chz.field(default=0.0, doc='Lower bound for the alpha value.')
     upper_bound: float = chz.field(default=0.5, doc='Upper bound for the alpha value.')
 
-    def build_mask_factory(self, seed: int) -> MaskFactory:
-        rng = np.random.default_rng(seed)
+    def build_mask_factory(self, rng: np.random.Generator) -> MaskFactory:
         alpha = rng.uniform(self.lower_bound, self.upper_bound)
         return fixed_alpha_mask_factory(alpha=alpha)

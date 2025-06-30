@@ -4,6 +4,7 @@ from numpy.random import Generator
 import numpy as np
 from .base import RandomGeneratorSNRInterface, RandomGeneratorTCInterface
 from functools import cached_property
+from ..utils.random import fork_rng
 
 class RandomGeneratorSNR(RandomGeneratorSNRInterface):
     """
@@ -19,36 +20,41 @@ class RandomGeneratorSNR(RandomGeneratorSNRInterface):
     """
 
     def __init__(self, batch_starter_seed: int):
+        children = fork_rng(np.random.default_rng(batch_starter_seed), 6)
+        self._rngs_build_model_seed = children[0]
+        self._rngs_get_mask_seed = children[1]
+        self._rngs_train_data_shuffle_seed = children[2]
+        self._rngs_model_factory_seed = children[3]
+        self._rngs_mask_factory_seed = children[4]
+        self._rngs_n_pcs_seed = children[5]
         self.batch_starter_seed = batch_starter_seed
-        self._seq = np.random.SeedSequence(self.batch_starter_seed)
-        self._rngs_build_model_seed = np.random.default_rng(self._seq.spawn(1)[0])
-        self._rngs_get_mask_seed = np.random.default_rng(self._seq.spawn(1)[0])
-        self._rngs_train_data_shuffle_seed = np.random.default_rng(self._seq.spawn(1)[0])
-        self._rngs_model_factory_seed = np.random.default_rng(self._seq.spawn(1)[0])
-        self._rngs_mask_factory_seed = np.random.default_rng(self._seq.spawn(1)[0])
         
     def _draw_seed_once(self) -> int:
         return self._rngs_get_mask_seed.integers(0, 2**32 - 1)
     
     @property
-    def model_build_seed(self) -> int:
-        return self._rngs_build_model_seed.integers(0, 2**32 - 1)
+    def model_build_rng(self) -> np.random.Generator:
+        return self._rngs_build_model_seed
     
     @cached_property
-    def mask_seed(self) -> int:
-        return self._draw_seed_once()
+    def mask_rng(self) -> np.random.Generator:
+        return self._rngs_get_mask_seed
     
     @property 
-    def train_data_shuffle_seed(self) -> int:
-        return self._rngs_train_data_shuffle_seed.integers(0, 2**32 - 1)
+    def train_data_shuffle_rng(self) -> np.random.Generator:
+        return self._rngs_train_data_shuffle_seed
     
     @property
-    def model_factory_seed(self) -> int:
-        return self._rngs_model_factory_seed.integers(0, 2**32 - 1)
+    def model_factory_rng(self) -> np.random.Generator:
+        return self._rngs_model_factory_seed
     
     @property
-    def mask_factory_seed(self) -> int:
-        return self._rngs_mask_factory_seed.integers(0, 2**32 - 1)
+    def mask_factory_rng(self) -> np.random.Generator:
+        return self._rngs_mask_factory_seed
+    
+    @property
+    def n_pcs_rng(self) -> np.random.Generator:
+        return self._rngs_n_pcs_seed
 
 
 class RandomGeneratorTC(RandomGeneratorTCInterface):
@@ -62,21 +68,20 @@ class RandomGeneratorTC(RandomGeneratorTCInterface):
         Initial seed for generating all subsequent seeds.
     """
     def __init__(self, batch_starter_seed: int):
-        self.batch_starter_seed = batch_starter_seed
-        self._seq = np.random.SeedSequence(self.batch_starter_seed)
-        self._rngs_build_model_seed = np.random.default_rng(self._seq.spawn(1)[0])
-        self._rngs_get_mask_seed = np.random.default_rng(self._seq.spawn(1)[0])
-        self._rngs_train_data_shuffle_seed = np.random.default_rng(self._seq.spawn(1)[0])
+        children = fork_rng(np.random.default_rng(batch_starter_seed), 3)
+        self._rngs_build_model_seed = children[0]
+        self._rngs_get_mask_seed = children[1]
+        self._rngs_train_data_shuffle_seed = children[2]
     
     @property
-    def mask_seed(self) -> int:
-        return self._rngs_get_mask_seed.integers(0, 2**32 - 1)
+    def mask_rng(self) -> np.random.Generator:
+        return self._rngs_get_mask_seed
         
     @property
-    def model_build_seed(self) -> int:
-        return self._rngs_build_model_seed.integers(0, 2**32 - 1)
+    def model_build_rng(self) -> np.random.Generator:
+        return self._rngs_build_model_seed
     
     @property 
-    def train_data_shuffle_seed(self) -> int:
-        return self._rngs_train_data_shuffle_seed.integers(0, 2**32 - 1)
+    def train_data_shuffle_rng(self) -> np.random.Generator:
+        return self._rngs_train_data_shuffle_seed
     
