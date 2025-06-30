@@ -63,6 +63,8 @@ class Experiment:
     dm_n_test: Optional[int]=chz.field(default=None, doc='Number of test samples for the datamodels pipeline.')
     indices_to_fit: IndicesFunction=chz.field(default=None, doc='Indices to fit for the experiment.')
     notes: str=chz.field(default=None, doc='Notes for the experiment.')
+    npcs_min: int=chz.field(default=5, doc='Minimum number of PCs to use for the SNR experiment.')
+    npcs_max: int=chz.field(default=50, doc='Maximum number of PCs to use for the SNR experiment.')
 
     @chz.init_property
     def _check_path(self):
