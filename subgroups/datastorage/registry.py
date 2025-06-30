@@ -286,7 +286,7 @@ def ace_csf_proteomics_age_experiment() -> Experiment: # TODO: The overwrite con
 
 def rosmap_singlecell_experiment() -> Experiment: # TODO: The overwrite config doesn't work well when running the snr pipeline as independent batches with different seeds - Need to set overwrite to True then since the best model architecture can change over time. Fix this config issue.
     path = "/orcd/data/lhtsai/001/djuna/results/"
-    name = "rosmap_singlecell_experiment"
+    name = "rosmap_singlecell_experiment_june_30"
     try:
         parameters, alpha = return_best_model_architecture(os.path.join(path, name, "snr_outputs"), acc_cutoff=0)
         mask_factory = fixed_alpha_mask_factory(**alpha)
@@ -312,6 +312,8 @@ def rosmap_singlecell_experiment() -> Experiment: # TODO: The overwrite config d
         indices_to_fit=SequentialIndices(batch_size=421),
         dm_n_train=3000000,
         dm_n_test=500000,
+        npcs_min=5,
+        npcs_max=50,
         datamodels_pipeline=DatamodelsPipelineBasic(datamodel_factory=LinearRegressionFactory(),
                                                     combined_mask_margin_storage=CombinedMaskMarginStorage(path_to_inputs=os.path.join(path, name, "classifier_outputs")),
                                                     path_to_outputs=os.path.join(path, name, "datamodel_outputs")),
