@@ -92,7 +92,7 @@ def gtex_subset_experiment_home() -> Experiment:
 
 def gtex_subset_experiment() -> Experiment:
     path = "/orcd/data/lhtsai/001/djuna/results/"
-    name = "gtex_subset_experiment"
+    name = "gtex_subset_experiment_june_30"
     try:
         parameters, alpha = return_best_model_architecture(os.path.join(path, name, "snr_outputs"), acc_cutoff=0)
         mask_factory = fixed_alpha_mask_factory(**alpha)
