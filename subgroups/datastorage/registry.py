@@ -16,24 +16,7 @@ from ..datasets.ace import AceDataset
 from ..datasets.gtex import GTEXDataset
 import chz
 from .combined_mask_margin import CombinedMaskMarginStorage
-
-# def instance_to_class(instance, recursive: bool = True):
-#     class NewClass(type(instance)):
-#         ...
-    
-#     for name, field in chz.chz_fields(instance).items():
-#         default_value = getattr(instance, name)
-#         if chz.is_chz(default_value) and recursive:
-#             setattr(NewClass, name, chz.field(default_factory=instance_to_class(default_value, recursive=True)))
-#         else:
-#             setattr(NewClass, name, chz.field(default=default_value))
-#         NewClass.__annotations__[name] = field.final_type
-#     return chz.chz(NewClass)
-
-# def overridable(fn):
-#     def wrapped():
-#         return instance_to_class(fn(), recursive=True)
-#     return wrapped()
+from ..datasamplers.feature_selectors import SelectPCsBasic, SelectPCsSingleCell
 
 def gtex_experiment() -> Experiment:
     return Experiment(
@@ -120,6 +103,7 @@ def gtex_subset_experiment() -> Experiment:
         dm_n_test=500000,
         npcs_min=5,
         npcs_max=500,
+        feature_selector=SelectPCsBasic(),
         datamodels_pipeline=DatamodelsPipelineBasic(datamodel_factory=LinearRegressionFactory(),
                                                     combined_mask_margin_storage=CombinedMaskMarginStorage(path_to_inputs=os.path.join(path, name, "classifier_outputs")),
                                                     path_to_outputs=os.path.join(path, name, "datamodel_outputs")),
@@ -136,6 +120,7 @@ def random_dataset_experiment() -> Experiment:
            snr_n_passes=3, 
            snr_random_generator=RandomGeneratorSNR, 
            tc_random_generator=RandomGeneratorTC,
+           feature_selector=SelectPCsBasic(),
            )
 
 #@overridable # TODO: have to fix this / move each function into own file because overridable gets called on import of any function in this file, meaning that it raises an error when the data isnt found
@@ -240,6 +225,7 @@ def ace_plasma_csf_proteomics_amnestic_experiment() -> Experiment: # TODO: The o
         dm_n_test=500000,
         npcs_min=5,
         npcs_max=500,
+        feature_selector=SelectPCsBasic(),
         datamodels_pipeline=DatamodelsPipelineBasic(datamodel_factory=LinearRegressionFactory(),
                                                     combined_mask_margin_storage=CombinedMaskMarginStorage(path_to_inputs=os.path.join(path, name, "classifier_outputs")),
                                                     path_to_outputs=os.path.join(path, name, "datamodel_outputs")),
@@ -314,10 +300,12 @@ def rosmap_singlecell_experiment() -> Experiment: # TODO: The overwrite config d
         dm_n_test=500000,
         npcs_min=5,
         npcs_max=50,
+        feature_selector=SelectPCsSingleCell(),
         datamodels_pipeline=DatamodelsPipelineBasic(datamodel_factory=LinearRegressionFactory(),
                                                     combined_mask_margin_storage=CombinedMaskMarginStorage(path_to_inputs=os.path.join(path, name, "classifier_outputs")),
                                                     path_to_outputs=os.path.join(path, name, "datamodel_outputs")),
     )
+
 
 def rosmap_singlecell_experiment_baseline() -> Experiment: # TODO: The overwrite config doesn't work well when running the snr pipeline as independent batches with different seeds - Need to set overwrite to True then since the best model architecture can change over time. Fix this config issue.
     path = "/orcd/data/lhtsai/001/djuna/results/"

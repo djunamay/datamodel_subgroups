@@ -21,6 +21,7 @@ from ..utils.configs     import write_chz_class_to_json, append_float_ndjson
 from .train_classifiers  import TrainClassifiersArgs, run_training_batch
 from .stopping_condition import StoppingConditionInterface
 from ..experiments.train_classifiers import fit_single_classifier, _make_storage
+from ..datasamplers.feature_selectors import SelectPCsInterface
 
 @chz.chz
 class ComputeSNRArgs:
@@ -59,7 +60,7 @@ class ComputeSNRArgs:
     n_models: int  = 20           # train-split count
     n_passes: int  = 15           # model re-initialisations per split
     in_memory: bool = True
-
+    feature_selector: SelectPCsInterface
 @chz.chz
 class ComputeSNRArgsMultipleArchitectures:
     """
@@ -101,6 +102,8 @@ class ComputeSNRArgsMultipleArchitectures:
     n_architectures: int
     path_to_results: str
 
+    feature_selector: SelectPCsInterface
+
 
 def _mk_train_args(cfg: ComputeSNRArgs) -> TrainClassifiersArgs:
     """Return the per-pass TrainClassifiersArgs object."""
@@ -131,7 +134,8 @@ def _mk_snr_args(args: ComputeSNRArgsMultipleArchitectures, mask_factory: MaskFa
                          random_generator=args.random_generator,
                          stopping_condition=args.stopping_condition,
                          npcs_min=args.npcs_min,
-                         npcs_max=args.npcs_max)
+                         npcs_max=args.npcs_max,
+                         feature_selector=args.feature_selector)
 
 def snr_inputs_for_one_architecture(args: ComputeSNRArgs) -> tuple[np.ndarray, float]:
     """
@@ -165,7 +169,7 @@ def snr_inputs_for_one_architecture(args: ComputeSNRArgs) -> tuple[np.ndarray, f
     train_args = _mk_train_args(args)
     storage = _make_storage(train_args, args.dataset, args.random_generator.batch_starter_seed)
     n_pcs = args.random_generator._rngs_n_pcs_seed.integers(args.npcs_min, args.npcs_max)
-
+    feature_indices = args.feature_selector.feature_indices(n_pcs=n_pcs)
 
     for bin in bins:
 
@@ -176,7 +180,7 @@ def snr_inputs_for_one_architecture(args: ComputeSNRArgs) -> tuple[np.ndarray, f
                 for i in np.arange(start, stop):
                     mask = storage.masks[i]
                     clf   = args.model_factory.build_model(rng=args.random_generator.model_build_rng)
-                    margins_temp, acc = fit_single_classifier(args.dataset.features[:, :n_pcs], args.dataset.coarse_labels, mask, clf, args.random_generator.train_data_shuffle_rng)
+                    margins_temp, acc = fit_single_classifier(args.dataset.features[:, feature_indices], args.dataset.coarse_labels, mask, clf, args.random_generator.train_data_shuffle_rng)
                     storage.fill_results(i, margins_temp, acc)
 
                 masks[p][start:stop]   = storage.masks[start:stop]

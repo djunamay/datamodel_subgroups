@@ -131,3 +131,9 @@ class RandomGeneratorTCInterface(ABC):
         """
         ...
 
+@chz.chz
+class SelectPCsInterface(ABC):
+    @abstractmethod
+    def feature_indices(self, n_pcs: int) -> NDArray[int]:
+        """Feature indices to select."""
+        ...

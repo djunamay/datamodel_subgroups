@@ -10,7 +10,7 @@ from ..experiments.stopping_condition import StoppingConditionInterface
 from typing import Type
 from ..datamodels.base import DatamodelsPipelineInterface
 from ..datamodels.indices import IndicesFunction
-
+from ..datasamplers.feature_selectors import SelectPCsInterface
 @chz.chz
 class Experiment:
     """
@@ -65,6 +65,7 @@ class Experiment:
     notes: str=chz.field(default=None, doc='Notes for the experiment.')
     npcs_min: int=chz.field(default=5, doc='Minimum number of PCs to use for the SNR experiment.')
     npcs_max: int=chz.field(default=50, doc='Maximum number of PCs to use for the SNR experiment.')
+    feature_selector: SelectPCsInterface=chz.field(default=None, doc='Feature selector for the experiment.')
 
     @chz.init_property
     def _check_path(self):

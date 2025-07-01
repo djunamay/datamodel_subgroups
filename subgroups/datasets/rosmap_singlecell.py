@@ -18,8 +18,7 @@ class RosmapSingleCellDataset(BaseDataset):
     path_to_meta_data: str = chz.field(doc="Path to the meta data")
     path_to_extended_meta_data: str = chz.field(doc="Path to the extended meta data")
     path_to_projid_dictionary: str = chz.field(doc="Path to the projid dictionary")
-    n_components: int = chz.field(default=50, doc="Number of components to use")
-
+    
     @staticmethod
     def _get_stats(genes, funcs = [np.mean, np.std, lambda x, y: np.percentile(x, [10, 90], y).T]):
         curr_stats = []
@@ -32,8 +31,7 @@ class RosmapSingleCellDataset(BaseDataset):
 
     @chz.init_property
     def _full_single_cell_data(self):
-        data = np.memmap(self.path_to_data, dtype='float32', shape = (2335726, 50), mode = 'r')
-        return data[:, :self.n_components]
+        return np.memmap(self.path_to_data, dtype='float32', shape = (2335726, 50), mode = 'r')
 
     @chz.init_property
     def _full_meta_data(self):
