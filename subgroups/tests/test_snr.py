@@ -25,6 +25,7 @@ from ..experiments.stopping_condition import SNRPrecisionStopping
 from ..experiments.compute_signal_to_noise import ComputeSNRArgs, snr_inputs_for_one_architecture, compute_signal_noise
 import numpy as np
 from ..utils.random import fork_rng
+from ..datasamplers.feature_selectors import SelectPCsBasic
 
 def test_fork_rng():
     children = fork_rng(np.random.default_rng(0), 6)
@@ -47,7 +48,8 @@ def test_compute_snr_for_one_architecture():
         snr_n_passes=2,
         snr_random_generator=RandomGeneratorSNR,
         tc_random_generator=RandomGeneratorTC,
-        stopping_condition=SNRPrecisionStopping(tolerance=0.05))
+        stopping_condition=SNRPrecisionStopping(tolerance=0.05),
+        feature_selector=SelectPCsBasic())
 
     batch_size = 10
     random_generator = experiment.snr_random_generator(batch_starter_seed=0)
@@ -61,7 +63,8 @@ def test_compute_snr_for_one_architecture():
                         n_architectures=batch_size,
                         model_factory_initializer=experiment.model_factory_initializer,
                         mask_factory_initializer=experiment.mask_factory_initializer,
-                        stopping_condition=experiment.stopping_condition) 
+                        stopping_condition=experiment.stopping_condition,
+                        feature_selector=experiment.feature_selector) 
     
     def make_storage(random_generator: RandomGeneratorSNR, args: ComputeSNRArgsMultipleArchitectures):
         
@@ -97,7 +100,9 @@ def test_snr_across_seeds():
            snr_n_passes=2,
            snr_random_generator=RandomGeneratorSNR,
            tc_random_generator=RandomGeneratorTC,
-           stopping_condition=SNRPrecisionStopping(tolerance=0.05))
+           stopping_condition=SNRPrecisionStopping(tolerance=0.05),
+           feature_selector=SelectPCsBasic(),
+           npcs_max=20)
 
     snr1 = pipeline_snr(exp, batch_size=2, batch_starter_seed=1)
     snr2 = pipeline_snr(exp, batch_size=2, batch_starter_seed=1)
@@ -120,7 +125,8 @@ def test_consistency_of_snr_computation():
         stopping_condition=SNRPrecisionStopping(),
         n_models=10,
         n_passes=10,
-        in_memory=True
+        in_memory=True,
+        feature_selector=SelectPCsBasic()
     )
 
     margins, masks, _, _ = snr_inputs_for_one_architecture(args)
