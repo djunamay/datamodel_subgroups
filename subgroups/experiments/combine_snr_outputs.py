@@ -51,8 +51,10 @@ def combine_snr_outputs(path: str, output_path: str):
         batch = [int(file.split('_')[-1].split('.')[0]) for file in files]
         if file_prefix == 'mask_factory_':
             numbers = [number['alpha'] for number in numbers]
+            file_prefix='alpha_'
         if file_prefix == 'model_factory_':
             numbers = [number['max_depth'] for number in numbers]
+            file_prefix='max_depth_'
         data_numbers[file_prefix] = numbers
         data_batch[file_prefix] = batch
 
