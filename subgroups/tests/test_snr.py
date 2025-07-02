@@ -49,7 +49,10 @@ def test_compute_snr_for_one_architecture():
         snr_random_generator=RandomGeneratorSNR,
         tc_random_generator=RandomGeneratorTC,
         stopping_condition=SNRPrecisionStopping(tolerance=0.05),
-        feature_selector=SelectPCsBasic())
+        npcs=5,
+        feature_selector=SelectPCsBasic(),
+        npcs_min=2,
+        npcs_max=5)
 
     batch_size = 10
     random_generator = experiment.snr_random_generator(batch_starter_seed=0)
@@ -64,7 +67,10 @@ def test_compute_snr_for_one_architecture():
                         model_factory_initializer=experiment.model_factory_initializer,
                         mask_factory_initializer=experiment.mask_factory_initializer,
                         stopping_condition=experiment.stopping_condition,
-                        feature_selector=experiment.feature_selector) 
+                        feature_selector=experiment.feature_selector,
+                        npcs_min=experiment.npcs_min,
+                        npcs_max=experiment.npcs_max,
+                        npcs=experiment.npcs) 
     
     def make_storage(random_generator: RandomGeneratorSNR, args: ComputeSNRArgsMultipleArchitectures):
         
@@ -102,7 +108,8 @@ def test_snr_across_seeds():
            tc_random_generator=RandomGeneratorTC,
            stopping_condition=SNRPrecisionStopping(tolerance=0.05),
            feature_selector=SelectPCsBasic(),
-           npcs_max=20)
+           npcs_max=20,
+           npcs=5)
 
     snr1 = pipeline_snr(exp, batch_size=2, batch_starter_seed=1)
     snr2 = pipeline_snr(exp, batch_size=2, batch_starter_seed=1)
@@ -126,7 +133,8 @@ def test_consistency_of_snr_computation():
         n_models=10,
         n_passes=10,
         in_memory=True,
-        feature_selector=SelectPCsBasic()
+        feature_selector=SelectPCsBasic(),
+        npcs=5
     )
 
     margins, masks, _, _ = snr_inputs_for_one_architecture(args)

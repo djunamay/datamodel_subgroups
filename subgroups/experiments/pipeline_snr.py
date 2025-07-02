@@ -28,7 +28,8 @@ def pipeline_snr(experiment: Experiment, batch_size: int, batch_starter_seed: in
                              stopping_condition=experiment.stopping_condition,
                              npcs_min=experiment.npcs_min,
                              npcs_max=experiment.npcs_max,
-                             feature_selector=experiment.feature_selector) 
+                             feature_selector=experiment.feature_selector,
+                             npcs=experiment.npcs) 
     
     snr_out = compute_snr_for_multiple_architectures(args)
 

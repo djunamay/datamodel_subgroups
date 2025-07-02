@@ -66,6 +66,7 @@ class Experiment:
     npcs_min: int=chz.field(default=5, doc='Minimum number of PCs to use for the SNR experiment.')
     npcs_max: int=chz.field(default=50, doc='Maximum number of PCs to use for the SNR experiment.')
     feature_selector: SelectPCsInterface=chz.field(default=None, doc='Feature selector for the experiment.')
+    npcs: int=chz.field(default=None, doc='Number of PCs to use for the experiment.')
 
     @chz.init_property
     def _check_path(self):

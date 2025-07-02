@@ -20,6 +20,7 @@ from ..datastorage.base import MaskMarginStorageInterface
 import chz
 from sklearn.model_selection import train_test_split
 from ..utils.random import fork_rng
+from ..datasamplers.feature_selectors import SelectPCsInterface
 @chz.chz
 class TrainClassifiersArgs:
     """
@@ -54,6 +55,8 @@ class TrainClassifiersArgs:
     in_memory: bool = chz.field(default=True, doc='Flag indicating whether to store results in memory.')
     path: Optional[str] = chz.field(default=None, doc='Path for storing results if not in memory.')
     random_generator: RandomGeneratorTCInterface = chz.field(default=None, doc='Random generator for training the classifier.')
+    npcs: int = chz.field(default=None, doc='Number of PCs to use for the classifier.')
+    feature_selector: SelectPCsInterface = chz.field(default=None, doc='Feature selector for the classifier.')
 
 def _make_storage(args: TrainClassifiersArgs, ds: DatasetInterface, batch_starter_seed: int) -> MaskMarginStorageInterface:
     return MaskMarginStorage(
@@ -127,6 +130,8 @@ def run_training_batch(args: TrainClassifiersArgs, batch_starter_seed: int):
         the training results. Otherwise, returns the path to the stored results.
     """
     ds = args.dataset
+    feature_indices = args.feature_selector.feature_indices(n_pcs=args.npcs)
+    features = ds.features[:, feature_indices]
     storage = _make_storage(args, ds, batch_starter_seed)
     _call_storage_warning(storage.masks.shape[0], args.n_models)
 
@@ -139,7 +144,7 @@ def run_training_batch(args: TrainClassifiersArgs, batch_starter_seed: int):
             continue
 
         clf = args.model_factory.build_model(rng=build_model_rngs_children[i])
-        margins, acc = fit_single_classifier(ds.features, ds.coarse_labels, mask, clf, train_data_shuffle_rngs_children[i])
+        margins, acc = fit_single_classifier(features, ds.coarse_labels, mask, clf, train_data_shuffle_rngs_children[i])
         storage.fill_results(i, margins, acc)
 
     return storage if storage.in_memory else storage.path

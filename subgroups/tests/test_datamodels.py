@@ -14,6 +14,7 @@ import shutil
 import numpy as np
 import os
 from ..datastorage.combined_mask_margin import CombinedMaskMarginStorage
+from ..datasamplers.feature_selectors import SelectPCsBasic
 def test_pipeline_dm():
 
     random_dataset = RandomDataset()
@@ -37,12 +38,14 @@ def test_pipeline_dm():
                                                         path_to_outputs = './temp/test_experiment/datamodel_outputs'),
             indices_to_fit = SequentialIndices(batch_size=5),
             dm_n_train = 90,
-            dm_n_test = 10)
+            dm_n_test = 10,
+            npcs = 5,
+            feature_selector = SelectPCsBasic())
 
     # create temporary training data
     batch_size = 50
-    pipeline_tc(exp, batch_size=batch_size, batch_starter_seed=1)
-    pipeline_tc(exp, batch_size=batch_size, batch_starter_seed=2)
+    pipeline_tc(exp, batch_size=batch_size, batch_starter_seed=1, overwrite_config=True)
+    pipeline_tc(exp, batch_size=batch_size, batch_starter_seed=2, overwrite_config=True)
 
     try:
         # check that both runs are recognized and concatenated in the datamodels pipeline

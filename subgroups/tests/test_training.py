@@ -10,6 +10,7 @@ from ..datasamplers.random_generators import RandomGeneratorSNR, RandomGenerator
 from ..experiments.stopping_condition import SNRPrecisionStopping
 from ..experiments.compute_signal_to_noise import ComputeSNRArgs, snr_inputs_for_one_architecture, compute_signal_noise
 import numpy as np
+from ..datasamplers.feature_selectors import SelectPCsBasic
 
 def test_tc_pipeline_across_seeds():
     """
@@ -27,7 +28,9 @@ def test_tc_pipeline_across_seeds():
             snr_n_passes=3,
             snr_random_generator=RandomGeneratorSNR,
             tc_random_generator=RandomGeneratorTC,
-            stopping_condition=SNRPrecisionStopping(tolerance=0.05))
+            stopping_condition=SNRPrecisionStopping(tolerance=0.05),
+            npcs=5,
+            feature_selector=SelectPCsBasic())
 
     run1 = pipeline_tc(exp, batch_size=3, batch_starter_seed=1)
     run2 = pipeline_tc(exp, batch_size=3, batch_starter_seed=1)

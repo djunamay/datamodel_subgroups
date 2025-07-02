@@ -61,6 +61,7 @@ class ComputeSNRArgs:
     n_passes: int  = 15           # model re-initialisations per split
     in_memory: bool = True
     feature_selector: SelectPCsInterface
+    npcs: int
 @chz.chz
 class ComputeSNRArgsMultipleArchitectures:
     """
@@ -103,6 +104,7 @@ class ComputeSNRArgsMultipleArchitectures:
     path_to_results: str
 
     feature_selector: SelectPCsInterface
+    npcs: int
 
 
 def _mk_train_args(cfg: ComputeSNRArgs) -> TrainClassifiersArgs:
@@ -114,6 +116,8 @@ def _mk_train_args(cfg: ComputeSNRArgs) -> TrainClassifiersArgs:
         n_models        = cfg.n_models,
         random_generator= cfg.random_generator,
         in_memory       = True,
+        npcs            = cfg.npcs,
+        feature_selector= cfg.feature_selector
     )
 
 def _mk_snr_out(args: ComputeSNRArgsMultipleArchitectures) -> np.ndarray:
@@ -135,7 +139,8 @@ def _mk_snr_args(args: ComputeSNRArgsMultipleArchitectures, mask_factory: MaskFa
                          stopping_condition=args.stopping_condition,
                          npcs_min=args.npcs_min,
                          npcs_max=args.npcs_max,
-                         feature_selector=args.feature_selector)
+                         feature_selector=args.feature_selector,
+                         npcs=args.npcs)
 
 def snr_inputs_for_one_architecture(args: ComputeSNRArgs) -> tuple[np.ndarray, float]:
     """

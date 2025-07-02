@@ -24,7 +24,9 @@ def pipeline_tc(experiment: Experiment, batch_size: int, batch_starter_seed: int
                                 n_models=batch_size,
                                 in_memory=experiment.in_memory, 
                                 path=experiment.path_to_classifier_outputs if not experiment.in_memory else None, 
-                                random_generator=random_generator)
+                                random_generator=random_generator,
+                                npcs=experiment.npcs,
+                                feature_selector=experiment.feature_selector)
     
     train_out = run_training_batch(args, batch_starter_seed)
 
