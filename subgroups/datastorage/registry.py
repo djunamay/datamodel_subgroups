@@ -76,13 +76,13 @@ from ..datasamplers.feature_selectors import SelectPCsBasic, SelectPCsSingleCell
 def gtex_subset_experiment() -> Experiment:
     path = "/orcd/data/lhtsai/001/djuna/results/"
     name = "gtex_subset_experiment_june_30"
-    try:
-        parameters, alpha = return_best_model_architecture(os.path.join(path, name, "snr_outputs"), acc_cutoff=0)
-        mask_factory = fixed_alpha_mask_factory(**alpha)
-        model_factory = XgbFactory(**parameters)
-    except ValueError:
-        mask_factory = fixed_alpha_mask_factory(alpha=0.01)
-        model_factory = XgbFactory()
+    # try:
+    #     parameters, alpha = return_best_model_architecture(os.path.join(path, name, "snr_outputs"), acc_cutoff=0)
+    #     mask_factory = fixed_alpha_mask_factory(**alpha)
+    #     model_factory = XgbFactory(**parameters)
+    # except ValueError:
+    mask_factory = fixed_alpha_mask_factory(alpha=0.012507530044163674)
+    model_factory = XgbFactory(max_depth=7)
 
     return Experiment(
         dataset=gtex_subset(),
@@ -103,6 +103,7 @@ def gtex_subset_experiment() -> Experiment:
         dm_n_test=500000,
         npcs_min=5,
         npcs_max=500,
+        npcs=20,
         feature_selector=SelectPCsBasic(),
         datamodels_pipeline=DatamodelsPipelineBasic(datamodel_factory=LinearRegressionFactory(),
                                                     combined_mask_margin_storage=CombinedMaskMarginStorage(path_to_inputs=os.path.join(path, name, "classifier_outputs")),
