@@ -32,46 +32,48 @@ from ..datasamplers.feature_selectors import SelectPCsBasic, SelectPCsSingleCell
 #         experiment_name="gtex_experiment"
 #     )
 
-# def gtex_subset_experiment_home() -> Experiment:
-#     path = "/Users/djuna/Documents/temp/results/"
-#     name = "gtex_subset_experiment_home"
-#     try:
-#         parameters, alpha = return_best_model_architecture(os.path.join(path, name, "snr_outputs"), acc_cutoff=0)
-#         mask_factory = fixed_alpha_mask_factory(**alpha)
-#         model_factory = XgbFactory(**parameters)
-#     except ValueError:
-#         mask_factory = fixed_alpha_mask_factory(alpha=0.01)
-#         model_factory = XgbFactory()
+def gtex_subset_experiment_home() -> Experiment:
+    path = "/Users/djuna/Documents/temp/results/"
+    name = "gtex_subset_experiment_home"
+    try:
+        parameters, alpha = return_best_model_architecture(os.path.join(path, name, "snr_outputs"), acc_cutoff=0)
+        mask_factory = fixed_alpha_mask_factory(**alpha)
+        model_factory = XgbFactory(**parameters)
+    except ValueError:
+        mask_factory = fixed_alpha_mask_factory(alpha=0.01)
+        model_factory = XgbFactory()
 
-#     return Experiment(
-#         dataset=GTEXDataset(
-#         path_to_data="../subgroups_data/gtex_subset/subset_esophagus_bloodvessel.gct",
-#         path_to_meta_data='../subgroups_data/gtex/GTEx_Analysis_v10_Annotations_SampleAttributesDS.txt',
-#         path_to_sample_metadata='../subgroups_data/gtex/GTEx_Analysis_v10_Annotations_SubjectPhenotypesDS.txt',
-#         predicted_class='Esophagus',
-#         n_components=500
-#     ),
-#         mask_factory=mask_factory,
-#         model_factory=model_factory,
-#         model_factory_initializer=XgbFactoryInitializer(), 
-#         mask_factory_initializer=fixed_alpha_mask_factory_initializer(upper_bound=0.2),
-#         in_memory=False,
-#         snr_n_models=1000,
-#         snr_n_passes=50,
-#         snr_random_generator=RandomGeneratorSNR, 
-#         tc_random_generator=RandomGeneratorTC,
-#         path=path,
-#         experiment_name=name,
-#         stopping_condition=SNRPrecisionStopping(tolerance=0.1),
-#         indices_to_fit=SequentialIndices(batch_size=50),
-#         dm_n_train=9000,
-#         dm_n_test=1000,
-#         npcs_min=5,
-#         npcs_max=500,
-#         datamodels_pipeline=DatamodelsPipelineBasic(datamodel_factory=LinearRegressionFactory(),
-#                                                     combined_mask_margin_storage=CombinedMaskMarginStorage(path_to_inputs=os.path.join(path, name, "classifier_outputs")),
-#                                                     path_to_outputs=os.path.join(path, name, "datamodel_outputs")),
-#     )
+    return Experiment(
+        dataset=GTEXDataset(
+        path_to_data="/Users/djuna/Documents/subgroups_data/gtex_subset/subset_esophagus_bloodvessel.gct",
+        path_to_meta_data='/Users/djuna/Documents/subgroups_data/gtex/GTEx_Analysis_v10_Annotations_SampleAttributesDS.txt',
+        path_to_sample_metadata='/Users/djuna/Documents/subgroups_data/gtex/GTEx_Analysis_v10_Annotations_SubjectPhenotypesDS.txt',
+        predicted_class='Esophagus',
+        n_components=500
+    ),
+        mask_factory=mask_factory,
+        model_factory=model_factory,
+        model_factory_initializer=XgbFactoryInitializer(), 
+        mask_factory_initializer=fixed_alpha_mask_factory_initializer(upper_bound=0.2),
+        in_memory=False,
+        snr_n_models=1000,
+        snr_n_passes=50,
+        snr_random_generator=RandomGeneratorSNR, 
+        tc_random_generator=RandomGeneratorTC,
+        path=path,
+        experiment_name=name,
+        stopping_condition=SNRPrecisionStopping(tolerance=0.1),
+        indices_to_fit=SequentialIndices(batch_size=50),
+        dm_n_train=9000,
+        dm_n_test=1000,
+        npcs_min=5,
+        npcs_max=500,
+        npcs=500,
+        feature_selector=SelectPCsBasic(),
+        datamodels_pipeline=DatamodelsPipelineBasic(datamodel_factory=LinearRegressionFactory(),
+                                                    combined_mask_margin_storage=CombinedMaskMarginStorage(path_to_inputs=os.path.join(path, name, "classifier_outputs")),
+                                                    path_to_outputs=os.path.join(path, name, "datamodel_outputs")),
+    )
 
 def gtex_subset_experiment() -> Experiment:
     path = "/orcd/data/lhtsai/001/djuna/results/"
@@ -98,7 +100,7 @@ def gtex_subset_experiment() -> Experiment:
         path=path,
         experiment_name=name,
         stopping_condition=SNRPrecisionStopping(tolerance=0.1),
-        indices_to_fit=SequentialIndices(batch_size=50),
+        indices_to_fit=SequentialIndices(batch_size=500),
         dm_n_train=1500000,
         dm_n_test=500000,
         npcs_min=5,
