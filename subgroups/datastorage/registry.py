@@ -101,7 +101,7 @@ def gtex_subset_experiment() -> Experiment:
         experiment_name=name,
         stopping_condition=SNRPrecisionStopping(tolerance=0.1),
         indices_to_fit=SequentialIndices(batch_size=500),
-        dm_n_train=3000000,
+        dm_n_train=1500000,
         dm_n_test=500000,
         npcs_min=5,
         npcs_max=500,
