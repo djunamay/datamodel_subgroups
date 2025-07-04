@@ -201,13 +201,13 @@ def ace_plasma_csf_proteomics_amnestic_experiment() -> Experiment: # TODO: The o
     # TODO: overridable works but not recurisvely and means that the config file is not well-documented
     path = "/home/Genomica/03-Collabs/djuna/results/"
     name = "ace_plasma_csf_proteomics_amnestic_experiment_june_30"
-    try:
-        parameters, alpha = return_best_model_architecture(os.path.join(path, name, "snr_outputs"), acc_cutoff=0)
-        mask_factory = fixed_alpha_mask_factory(**alpha)
-        model_factory = XgbFactory(**parameters)
-    except ValueError:
-        mask_factory = fixed_alpha_mask_factory(alpha=0.01)
-        model_factory = XgbFactory()
+    # try:
+    #     parameters, alpha = return_best_model_architecture(os.path.join(path, name, "snr_outputs"), acc_cutoff=0)
+    #     mask_factory = fixed_alpha_mask_factory(**alpha)
+    #     model_factory = XgbFactory(**parameters)
+    # except ValueError:
+    mask_factory = fixed_alpha_mask_factory(alpha=0.13740237552428117)
+    model_factory = XgbFactory(max_depth=3)
 
     return Experiment(
         dataset=ace_plasma_csf_proteomics(),
@@ -228,6 +228,7 @@ def ace_plasma_csf_proteomics_amnestic_experiment() -> Experiment: # TODO: The o
         dm_n_test=500000,
         npcs_min=5,
         npcs_max=500,
+        npcs=47,
         feature_selector=SelectPCsBasic(),
         datamodels_pipeline=DatamodelsPipelineBasic(datamodel_factory=LinearRegressionFactory(),
                                                     combined_mask_margin_storage=CombinedMaskMarginStorage(path_to_inputs=os.path.join(path, name, "classifier_outputs")),
