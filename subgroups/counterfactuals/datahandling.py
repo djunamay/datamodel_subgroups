@@ -1,4 +1,15 @@
 import numpy as np
+from numpy.typing import NDArray
+from ..models.base import SklearnClassifier
+import chz
+from .base import PartitionStorageInterface, CounterfactualInputsInterface
+from dataclasses import dataclass, field
+from typing import Tuple, Iterator, Union, Any
+import numpy as np
+import pandas as pd
+from ..utils.loading import load_weights_data, load_eval_data
+from ..datasets.base import DatasetInterface
+
 class SplitClass:
 
     def __init__(self, X: np.ndarray, y: np.ndarray):
@@ -29,3 +40,109 @@ class CoarseSplits:
     @property
     def split_b(self) -> SplitClass:
         return SplitClass(X = self.features[self.fine_label_bool], y = self.labels[self.fine_label_bool])
+
+
+@chz.chz
+class PartitionStorageBase(PartitionStorageInterface):
+
+    matrix: NDArray[float]
+    partitioner: SklearnClassifier
+
+    @chz.init_property
+    def _correlation_matrix(self):
+        corr = np.corrcoef(self.matrix)
+        return (corr+1)/2
+    
+    @chz.init_property
+    def partitions(self)-> NDArray[int]:
+        return self.partitioner.fit_predict(self._correlation_matrix)
+    
+    @chz.init_property
+    def n_partitions(self)-> int:
+        return len(np.unique(self.partitions))
+
+
+@dataclass
+class CounterfactualInputs:
+    names: Tuple[str, ...] = field(init=False, repr=False)
+    matrices: Tuple[np.ndarray, ...] = field(init=False, repr=False)
+
+    def __init__(self, **named_matrices: Union[np.ndarray, Any]) -> None:
+        """
+        Accept any number of keyword‐arguments, where each key is a name
+        and each value is a numpy array (or array‐like). E.g.:
+        
+            CounterfactualInputs(A=A, B=B, C=C)
+        """
+        # store the names in insertion order
+        self.names = tuple(named_matrices.keys())
+        # convert to numpy arrays
+        self.matrices = tuple(np.asarray(m) for m in named_matrices.values())
+
+    def __iter__(self) -> Iterator[Tuple[str, np.ndarray]]:
+        """
+        Iterate over (name, matrix) pairs.
+        """
+        return iter(zip(self.names, self.matrices))
+
+    def __len__(self) -> int:
+        """
+        Number of matrices.
+        """
+        return len(self.matrices)
+
+    def __getitem__(self, idx: Union[int, slice]
+                    ) -> Union[Tuple[str, np.ndarray],
+                               Tuple[Tuple[str, np.ndarray], ...]]:
+        """
+        Indexing or slicing returns name/matrix pairs.
+        """
+        items = tuple(zip(self.names, self.matrices))
+        return items[idx]
+
+
+@chz.chz
+class CounterfactualInputsGTExSubset(CounterfactualInputsInterface):
+    
+    path_to_features: str
+    path_to_weights: str
+    dataset: DatasetInterface
+    group_1: bool
+
+    @chz.init_property
+    def sample_index(self)->np.ndarray:
+        return self.dataset.coarse_labels if self.group_1 else np.invert(self.dataset.coarse_labels)
+
+    @chz.init_property
+    def _features(self)->np.ndarray:
+        tpm_data = pd.read_csv(self.path_to_features, sep='\t', skiprows=2)
+        return tpm_data.iloc[:, 2:].T
+
+
+    @chz.init_property
+    def _features_filtered(self)->np.ndarray:
+
+        tmp_data_low_removed = self._features.loc[:,(self._features==0).sum(axis=0)<(0.3*self._features.shape[0])]
+        avs = tmp_data_low_removed.groupby(self.sample_index).mean()
+        avs_array = np.array(avs) + np.finfo(float).eps
+        lfcs = np.array(np.abs(np.log2(avs_array[0]/avs_array[1])))
+        features_subset = self._features.iloc[:,np.argsort(lfcs)[-np.sum(self.sample_index):]]
+        
+        return features_subset.loc[self.sample_index].values.astype(float)
+
+    @chz.init_property
+    def pca_input(self)->np.ndarray:
+        
+        return self._features.loc[self.sample_index].values.astype(float)
+    
+    @chz.init_property
+    def datamodel_input(self)->np.ndarray:
+        weights, _ = load_weights_data(self.path_to_weights)
+        x = load_eval_data(self.path_to_weights, 'pearson_correlations')[0]
+        weights = weights[x!=0]
+        return weights[self.sample_index][:,self.sample_index]
+    
+    @chz.init_property
+    def pca_filtered_input(self)->np.ndarray:
+
+        return self._features_filtered

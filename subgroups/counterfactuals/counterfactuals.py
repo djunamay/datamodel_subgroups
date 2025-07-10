@@ -5,11 +5,12 @@ import chz
 import numpy as np
 from ..models.base import ModelFactory
 from ..utils.scoring import compute_margins
-from .base import CounterfactualEvaluationInterface, CounterfactualResultsInterface, SplitResultsInterface
+from .base import CounterfactualEvaluationInterface, CounterfactualResultsInterface, SplitResultsInterface, PartitionStorageInterface
 from ..utils.random import fork_rng
 import pandas as pd
 from itertools import product
 from sklearn.metrics import roc_auc_score
+from numpy.typing import NDArray
 
 class SplitResults(SplitResultsInterface):
 
@@ -152,13 +153,78 @@ class CounterfactualEvaluation(CounterfactualEvaluationInterface):
                 split = getattr(results, split_name)
                 rows.append({
                     'split':     split_name,
-                    'prob_type': prob_attr,
+                    'prob_type': prob_attr.replace("probabilities", "evaluation"),
                     'auc': roc_auc_score(split.labels, getattr(split, prob_attr)),
-                    'margins': np.mean(compute_margins(getattr(split, prob_attr), split.labels)),
-                    'seed': seed
+                    'mean_margins': np.mean(compute_margins(getattr(split, prob_attr), split.labels)),
+                    'model_seed': seed
                 })
 
             df = pd.DataFrame(rows)
             all_outs.append(df)
         
         return pd.concat(all_outs)
+    
+
+@chz.chz
+class CounterfactualExperimentResults():
+    
+    partition_storage: PartitionStorageInterface
+    counterfactual_estimator: CounterfactualEvaluationInterface
+    n_iter: int
+    model_rng: np.random.RandomState
+    shuffle_rng: np.random.RandomState
+
+    @staticmethod
+    def _av_over_splits(res):
+        avg_auc = (
+            res
+            .groupby(['model_seed', 'prob_type', 'subcluster_index'], as_index=False)[['auc', 'mean_margins']]
+            .mean()
+            .rename(columns={'auc': 'mean_auc', 'mean_margins': 'mean_margins'})
+        )
+        return avg_auc
+    
+    @staticmethod
+    def _av_over_subclusters(res):
+        avg_auc = (
+            res
+            .groupby(['model_seed', 'prob_type'], as_index=False)[['mean_auc', 'mean_margins']]
+            .mean()
+        )
+        return avg_auc
+    
+    @chz.init_property
+    def _partitions(self)->NDArray[int]:
+        return self.partition_storage.partitions
+    
+    @chz.init_property
+    def _counterfactual_experiment_results(self):
+        all_outs = []
+        for current_subcluster_index in range(self.partition_storage.n_partitions):
+            all_outs.append(self._run_counterfactual_experiment(current_subcluster_index))
+        return pd.concat(all_outs)
+
+
+    def _partition_for_subcluster(self, current_subcluster_index: int)->NDArray[int]:
+        
+        if np.sum(self.counterfactual_estimator.coarse_labels)==len(self._partitions):
+            group_to_subcluster_indices = self.counterfactual_estimator.coarse_labels
+        else:
+            group_to_subcluster_indices = np.invert(self.counterfactual_estimator.coarse_labels)
+
+        partition = np.zeros_like(self.counterfactual_estimator.coarse_labels)
+        partition[group_to_subcluster_indices] = self._partitions == current_subcluster_index
+
+        return partition
+
+    def _run_counterfactual_experiment(self, current_subcluster_index: int):
+        partition = self._partition_for_subcluster(current_subcluster_index)
+        results = self.counterfactual_estimator.counterfactual_evaluation(partition, model_rng=self.model_rng, shuffle_rng=self.shuffle_rng, n_iter=self.n_iter)
+        results['subcluster_index'] = current_subcluster_index
+        return results
+
+
+    @chz.init_property
+    def results(self):
+        return self._av_over_subclusters(self._av_over_splits(self._counterfactual_experiment_results))
+    

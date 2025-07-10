@@ -1,6 +1,7 @@
 import numpy as np
 import chz
 from abc import ABC, abstractmethod
+from numpy.typing import NDArray
 
 class SplitResultsInterface(ABC):
 
@@ -48,3 +49,37 @@ class CounterfactualEvaluationInterface(ABC):
     @abstractmethod
     def counterfactual_evaluation(self, cluster_labels)-> CounterfactualResultsInterface:
         ...
+
+class PartitionStorageInterface(ABC):
+    """
+    Takes some input and returns a numpy array of integers, where each integer corresponds to a partition of the input.
+    The length of the array is equal to the number of samples in the major class of interest.
+    """
+    @property
+    @abstractmethod
+    def partitions(self)-> NDArray[int]:
+        ...
+
+    @property
+    @abstractmethod
+    def n_partitions(self)-> int:
+        ...
+
+@chz.chz
+@abstractmethod
+class CounterfactualInputsInterface(ABC):
+    @abstractmethod
+    @chz.init_property
+    def pca_input(self)->np.ndarray:
+        ...
+    
+    @abstractmethod
+    @chz.init_property
+    def datamodel_input(self)->np.ndarray:
+        ...
+
+    @abstractmethod
+    @chz.init_property
+    def pca_filtered_input(self)->np.ndarray:
+        ...
+    

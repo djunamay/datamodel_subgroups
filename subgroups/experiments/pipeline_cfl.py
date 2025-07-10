@@ -1,0 +1,51 @@
+from .run_counterfactuals import get_cfg_inputs, run_counterfactuals
+import chz
+import numpy as np
+from subgroups.utils.random import fork_rng
+from ..counterfactuals.base import CounterfactualInputsInterface, CounterfactualEvaluationInterface
+
+@chz.chz
+class CounterfactualExperimentArgs:
+
+    counterfactual_inputs: CounterfactualInputsInterface = chz.field(default=None, doc='The dataset used for the experiment.')
+    counterfactual_estimator: CounterfactualEvaluationInterface = chz.field(default=None, doc='Factory for generating masks. This will be used for training the classifier.')
+    experiment_seed: int = chz.field(default=None, doc='Factory for creating models. This will be used for training the classifier.')
+    n_iter: int = chz.field(default=None, doc='Number of models to build from ModelFactory. Each model will be trained on a different mask from MaskFactory.')
+    n_clusters: int = chz.field(default=None, doc='Flag indicating whether to store results in memory.')
+    in_memory: bool = chz.field(default=True, doc='Flag indicating whether to store results in memory.')
+    path: str = chz.field(default=None, doc='Path for storing results if not in memory.')
+
+
+def run_pipeline_counterfactuals(args: CounterfactualExperimentArgs):
+    
+    children = fork_rng(np.random.default_rng(args.experiment_seed), 3)
+    cfg = get_cfg_inputs(args.counterfactual_inputs.pca_input, args.counterfactual_inputs.datamodel_input, args.counterfactual_inputs.pca_filtered_input, children[0])
+    results = run_counterfactuals(cfg, args.counterfactual_estimator, n_iter=args.n_iter, n_clusters=args.n_clusters, model_rng=children[1], shuffle_rng=children[2])
+
+    if args.in_memory:
+        return results
+    else:
+        results.to_csv(args.path, index=False)
+        return args.path
+    
+def pipeline_counterfactuals(counterfactual_inputs: CounterfactualInputsInterface, counterfactual_estimator: CounterfactualEvaluationInterface, experiment_seed: int, n_iter: int, n_clusters: int, in_memory: bool, out_path: str=None):
+    
+    args = CounterfactualExperimentArgs(counterfactual_inputs=counterfactual_inputs, 
+                                 counterfactual_estimator=counterfactual_estimator, 
+                                 experiment_seed=experiment_seed, n_iter=n_iter, 
+                                 n_clusters=n_clusters, 
+                                 in_memory=in_memory, 
+                                 path=out_path)
+    
+    results = run_pipeline_counterfactuals(args)
+
+    if in_memory:
+        return results
+    else:
+        print(f"Counterfactual results saved to {results}")
+    
+    
+
+
+if __name__ == "__main__":
+    chz.entrypoint(pipeline_counterfactuals)
