@@ -60,12 +60,18 @@ class CounterfactualEvaluation(CounterfactualEvaluationInterface):
     test_size: int=None
     train_fraction: float=None
     classifier: ModelFactory
+    group_1: bool=True
+
+    @chz.init_property
+    def _course_labels(self)->np.ndarray:
+        return self.coarse_labels if self.group_1 else np.invert(self.coarse_labels)
+
 
     def _split_coarse(self, cluster_labels, sample_indices) -> CoarseSplits:
         if sample_indices is not None:
-            return CoarseSplits(features=self.features[sample_indices], labels=self.coarse_labels[sample_indices], fine_label_bool=cluster_labels[sample_indices])
+            return CoarseSplits(features=self.features[sample_indices], labels=self._course_labels[sample_indices], fine_label_bool=cluster_labels[sample_indices])
         else:
-            return CoarseSplits(features=self.features, labels=self.coarse_labels, fine_label_bool=cluster_labels)
+            return CoarseSplits(features=self.features, labels=self._course_labels, fine_label_bool=cluster_labels)
 
     def _make_group(self, split: SplitClass, seed: int, n_train: int, n_test: int) -> dict:
         X, y = shuffle(split.X, split.y, random_state=seed)
@@ -83,8 +89,8 @@ class CounterfactualEvaluation(CounterfactualEvaluationInterface):
     
     def _prepare_data(self, cluster_labels, sample_indices, shuffle_rng):
         splits = self._split_coarse(cluster_labels=cluster_labels, sample_indices=sample_indices)
-        smallest_group_size = np.min([splits.whole.X.shape[0], splits.split_a.X.shape[0], splits.split_b.X.shape[0]])
         if self.train_size is None:
+            smallest_group_size = np.min([splits.whole.X.shape[0], splits.split_a.X.shape[0], splits.split_b.X.shape[0]])
             n_train = int(self.train_fraction * smallest_group_size)
             n_test = smallest_group_size - n_train
         else:
@@ -108,6 +114,7 @@ class CounterfactualEvaluation(CounterfactualEvaluationInterface):
             X_tr = np.vstack([data[g]['X_train'] for g in train_groups])
             y_tr = np.concatenate([data[g]['y_train'] for g in train_groups])
             model = self.classifier.build_model(rng=model_rng)
+            X_tr, y_tr = shuffle(X_tr, y_tr, random_state=np.random.RandomState(shuffle_rng.bit_generator))
             model.fit(X_tr, y_tr)
 
             for test_name, test_groups in scenarios.items():
@@ -123,7 +130,7 @@ class CounterfactualEvaluation(CounterfactualEvaluationInterface):
         return results
     
     def _counterfactual_evaluation_results(self, cluster_labels, sample_indices=None, model_rng=None, shuffle_rng=None):
-        if len(np.unique(self.coarse_labels[cluster_labels]))!=1:
+        if len(np.unique(self._course_labels[cluster_labels]))!=1:
             raise ValueError("Cluster must be a subset of one of the coarse label classes.")
         
         results = self._counterfactual_evaluation(cluster_labels=cluster_labels, sample_indices=sample_indices, model_rng=model_rng, shuffle_rng=shuffle_rng)

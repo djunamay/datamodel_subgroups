@@ -6,13 +6,9 @@ import pandas as pd
 import numpy as np
 from sklearn.cluster import SpectralClustering
 
-def get_cfg_inputs(features, weights, features_filtered, rng):
+def get_cfg_inputs(features, weights, features_filtered):
 
-    n_features = np.min([weights.shape[1], features.shape[1]])
-
-    if n_features < weights.shape[1]:
-        index = rng.integers(0, weights.shape[0], n_features)
-        weights = weights[:,index]
+    n_features = weights.shape[1]
 
     # PCA regular
     scaler = StandardScaler()
@@ -29,7 +25,7 @@ def get_cfg_inputs(features, weights, features_filtered, rng):
     return CounterfactualInputs(datamodel=weights, pca=pca_matrix, pca_filtered=pca_matrix_filtered)
 
 
-def run_counterfactuals(cf_inputs, counterfactual_estimator, n_iter=100, n_clusters=2, random_state=1, model_rng=None, shuffle_rng=None):
+def run_counterfactuals(cf_inputs, counterfactual_estimator, n_iter=100, n_clusters=2, random_state=1, shuffle_rng=None, model_rng=None):
     all_results = []
     for name, mat in cf_inputs:
         partition_storage = PartitionStorageBase(matrix=mat, partitioner=SpectralClustering(n_clusters=n_clusters, affinity='precomputed', assign_labels='kmeans', random_state=random_state))
