@@ -32,7 +32,11 @@ def run_pipeline_counterfactuals(args: CounterfactualExperimentArgs):
 def pipeline_counterfactuals(experiment: Experiment, experiment_seed: int, n_iter: int, n_clusters: int, in_memory: bool, group_1: bool=True, sampling_size_factor: int=2):
 
     if not in_memory:
-        out_path = os.path.join(experiment.path, experiment.experiment_name, "clustering_outputs", f"batch_{experiment_seed}_nclusters_{n_clusters}_counterfactual_results.csv")
+        if group_1:
+            group_str = "group_1"
+        else:
+            group_str = "group_2"
+        out_path = os.path.join(experiment.path, experiment.experiment_name, "clustering_outputs", f"batch_{experiment_seed}_nclusters_{n_clusters}_{group_str}_counterfactual_results.csv")
     else:
         out_path = None
     
@@ -44,7 +48,7 @@ def pipeline_counterfactuals(experiment: Experiment, experiment_seed: int, n_ite
 
     counterfactual_estimator = experiment.counterfactual_estimator(features=experiment.dataset.features[:,experiment.feature_selector.feature_indices(n_pcs=experiment.npcs)],
                                                         coarse_labels=experiment.dataset.coarse_labels,
-                                                        train_size=int((experiment.mask_factory.alpha*experiment.dataset.num_samples)/sampling_size_factor), # corresponds to approx original model alpha of 0.012507530044163674
+                                                        train_size=int((experiment.mask_factory.alpha*experiment.dataset.num_samples)/sampling_size_factor), 
                                                         test_size=int((experiment.counterfactual_test_fraction*experiment.dataset.num_samples)/sampling_size_factor),
                                                         classifier=experiment.model_factory,
                                                         group_1=group_1)
