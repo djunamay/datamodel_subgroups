@@ -38,7 +38,7 @@ def plot_scatter(x, y, hue, xlabel, ylabel, title, legend_title, cmap='viridis_r
 
 
 def get_corr(weights, index):
-    corr = np.corrcoef(weights[(index)][:,((index))])
+    corr = np.corrcoef(weights[(index)])#[:,((index))])
     corr = (corr+1)/2
     return corr
 
@@ -94,6 +94,7 @@ def plot_cat_continuous(
     cont_col: str,
     order: list = None,
     box_pairs: list = None,
+    hue: str = None,
     test: str = "Mann-Whitney",
     text_format: str = "star",
     loc: str = "outside",
@@ -123,23 +124,21 @@ def plot_cat_continuous(
 
     sns.boxplot(
         x=cat_col, y=cont_col, data=data,
-        order=cats, palette=palette, ax=ax, **boxplot_kwargs
+        order=cats, palette=palette, ax=ax, hue=hue, **boxplot_kwargs
     )
-    sns.stripplot(
-        x=cat_col, y=cont_col, data=data,
-        order=cats, palette=palette, ax=ax, **stripplot_kwargs
-    )
+
     if x_lower is not None:
         ax.set_xlim(x_lower, x_upper)
     if y_lower is not None:
         ax.set_ylim(y_lower, y_upper)
 
-    annot = Annotator(
-        ax, x=cat_col, y=cont_col, data=data,
-        order=cats, pairs=pairs
-    )
-    annot.configure(test=test, text_format=text_format, loc=loc)
-    annot.apply_and_annotate()
+    if test is not None:
+        annot = Annotator(
+            ax, x=cat_col, y=cont_col, data=data,
+            order=cats, pairs=pairs
+        )
+        annot.configure(test=test, text_format=text_format, loc=loc)
+        annot.apply_and_annotate()
 
 
     ax.set_xlabel(cat_col)

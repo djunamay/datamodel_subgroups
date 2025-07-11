@@ -71,7 +71,6 @@ class Experiment:
     npcs: int=chz.field(default=None, doc='Number of PCs to use for the experiment.')
     counterfactual_inputs: CounterfactualInputsInterface=chz.field(default=None, doc='Counterfactual inputs for the experiment.')
     counterfactual_estimator: CounterfactualEvaluationInterface=chz.field(default=None, doc='Counterfactual estimator for the experiment.')
-    counterfactual_test_fraction: float=chz.field(default=0.1, doc='Fraction of the dataset to use for the counterfactual test set.')
 
     @chz.init_property
     def _check_path(self):
