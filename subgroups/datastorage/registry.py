@@ -387,7 +387,7 @@ def rosmap_singlecell_experiment_point_3() -> Experiment: # TODO: The overwrite 
         npcs_max=50,
         npcs=5,
         feature_selector=SelectPCsSingleCell(),
-        counterfactual_test_fraction=0.02,
+        counterfactual_test_fraction=0.1,
         counterfactual_inputs=CounterfactualInputsSingleCell,
         counterfactual_estimator=CounterfactualEvaluation,
         datamodels_pipeline=DatamodelsPipelineBasic(datamodel_factory=LinearRegressionFactory(),
