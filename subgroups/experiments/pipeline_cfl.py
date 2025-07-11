@@ -40,7 +40,7 @@ def pipeline_counterfactuals(experiment: Experiment, experiment_seed: int, n_ite
     else:
         out_path = None
     
-    counterfactual_inputs = experiment.counterfactual_inputs(path_to_features=experiment.dataset.path_to_data, 
+    counterfactual_inputs = experiment.counterfactual_inputs(
                                                        path_to_weights=os.path.join(experiment.path, experiment.experiment_name, "datamodel_outputs"), 
                                                        dataset=experiment.dataset,
                                                        group_1=group_1)

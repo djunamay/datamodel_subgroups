@@ -23,6 +23,10 @@ class RandomDataset(DatasetInterface):
         return self.rng.random((self.n_samples, self.n_features), dtype=float)
 
     @chz.init_property
+    def untransformed_features(self):
+        return self._features
+
+    @chz.init_property
     def _coarse_labels(self):
         return self.rng.random(self.n_samples) > 0.5
 

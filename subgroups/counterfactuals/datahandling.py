@@ -63,7 +63,6 @@ class PartitionStorageBase(PartitionStorageInterface):
 @chz.chz
 class CounterfactualInputsBasic(CounterfactualInputsInterface):
     
-    path_to_features: str
     path_to_weights: str
     dataset: DatasetInterface
     group_1: bool
@@ -74,25 +73,23 @@ class CounterfactualInputsBasic(CounterfactualInputsInterface):
 
     @chz.init_property
     def _features(self)->np.ndarray:
-        tpm_data = pd.read_csv(self.path_to_features, sep='\t', skiprows=2)
-        return tpm_data.iloc[:, 2:].T
+        return self.dataset.untransformed_features
 
 
     @chz.init_property
     def _features_filtered(self)->np.ndarray:
 
-        tmp_data_low_removed = self._features.loc[:,(self._features==0).sum(axis=0)<(0.3*self._features.shape[0])]
+        tmp_data_low_removed = self._features[:,(np.sum(self._features==0, axis=0)<(0.3*self._features.shape[0]))]
         avs = tmp_data_low_removed.groupby(self.sample_index).mean()
         avs_array = np.array(avs) + np.finfo(float).eps
         lfcs = np.array(np.abs(np.log2(avs_array[0]/avs_array[1])))
-        features_subset = self._features.iloc[:,np.argsort(lfcs)[-np.sum(self.sample_index):]]
+        features_subset = self._features[:,np.argsort(lfcs)[-np.sum(self.sample_index):]]
         
-        return features_subset.loc[self.sample_index].values.astype(float)
+        return features_subset[self.sample_index]
 
     @chz.init_property
-    def _pca_input(self)->np.ndarray:
-        
-        return self._features.loc[self.sample_index].values.astype(float)
+    def _all_features_input(self)->np.ndarray:
+        return self._features[self.sample_index]
     
     @chz.init_property
     def _datamodel_input(self)->np.ndarray:
@@ -102,10 +99,9 @@ class CounterfactualInputsBasic(CounterfactualInputsInterface):
         return weights[self.sample_index][:,self.sample_index]
     
     @chz.init_property
-    def _pca_filtered_input(self)->np.ndarray:
-
+    def _filtered_features_input(self)->np.ndarray:
         return self._features_filtered
     
     @chz.init_property
     def to_counterfactual_inputs(self) -> CounterfactualInputs:
-        return CounterfactualInputs(pca_input=self._pca_input, datamodel_input=self._datamodel_input, pca_filtered_input=self._pca_filtered_input)
+        return CounterfactualInputs(all_features_input=self._all_features_input, filtered_features_input=self._filtered_features_input, datamodel_input=self._datamodel_input)

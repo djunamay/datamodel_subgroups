@@ -51,6 +51,11 @@ class DatasetInterface(ABC):
         """Number of features."""
         ...
 
+    @property 
+    @abstractmethod
+    def untransformed_features(self) -> NDArray[float]:
+        """Feature matrix (shape: [n_samples, n_features])."""
+        ...
 
 @chz.chz
 class BaseDataset(DatasetInterface):
