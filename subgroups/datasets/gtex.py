@@ -40,11 +40,6 @@ class GTEXDataset(BaseDataset):
         tmp_data = self._reduce_dimensionality(untransformed_data, self.n_components)
         return tmp_data, index, untransformed_data
 
-
-    @chz.init_property
-    def untransformed_features(self):
-        return self._tpm_data[2]
-
     @chz.init_property
     def _meta_data(self):
         """
@@ -98,6 +93,10 @@ class GTEXDataset(BaseDataset):
         """
         return self._tpm_data[0]
 
+    @property
+    def untransformed_features(self):
+        return self._tpm_data[2]
+    
     @property
     def coarse_labels(self) -> NDArray[bool]:
         """

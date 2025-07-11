@@ -49,7 +49,7 @@ def pipeline_counterfactuals(experiment: Experiment, experiment_seed: int, n_ite
     counterfactual_estimator = experiment.counterfactual_estimator(features=experiment.dataset.features[:,experiment.feature_selector.feature_indices(n_pcs=experiment.npcs)],
                                                         coarse_labels=experiment.dataset.coarse_labels,
                                                         train_size=int((experiment.mask_factory.alpha*experiment.dataset.num_samples)/sampling_size_factor), 
-                                                        test_size=int((experiment.counterfactual_test_fraction*experiment.dataset.num_samples)/sampling_size_factor),
+                                                        test_size=int((experiment.counterfactual_test_fraction*experiment.dataset.num_samples)),
                                                         classifier=experiment.model_factory,
                                                         group_1=group_1)
 

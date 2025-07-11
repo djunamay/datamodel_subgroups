@@ -138,6 +138,10 @@ class RosmapSingleCellDataset(BaseDataset):
     def features(self) -> NDArray[float]:
         return self._features
     
+    @property 
+    def untransformed_features(self):
+        return self._features
+    
     @property
     def coarse_labels(self) -> NDArray[bool]:
         return np.array(self._extended_meta_data['AD_DLB_diagnosis']!=0)

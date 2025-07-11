@@ -188,11 +188,18 @@ class AceDatasetPlasmaCSF(BaseDataset):
         return indices_to_keep
 
     @chz.init_property
+    def _untransformed_csf_data(self):
+        """
+        Unreduced dimensionality CSF data and subsetted to the samples that are within 155 days of the cognitive assessment.
+        """
+        return self._full_csf_data.loc[self._samples_to_keep].values.astype(float)
+    
+    @chz.init_property
     def _filtered_reduced_csf_data(self):
         """
         Reduced dimensionality CSF data and subsetted to the samples that are within 155 days of the cognitive assessment.
         """
-        return self._reduce_dimensionality(self._full_csf_data.loc[self._samples_to_keep].values.astype(float), self.n_components)
+        return self._reduce_dimensionality(self._untransformed_csf_data, self.n_components)
 
     @property
     def _filtered_meta_data(self):
@@ -215,6 +222,10 @@ class AceDatasetPlasmaCSF(BaseDataset):
         """
         return self._filtered_reduced_csf_data
 
+    @property
+    def untransformed_features(self):
+        return self._untransformed_csf_data
+    
     @property
     def coarse_labels(self) -> NDArray[bool]:
         """
