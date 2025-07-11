@@ -11,6 +11,7 @@ import pandas as pd
 from itertools import product
 from sklearn.metrics import roc_auc_score
 from numpy.typing import NDArray
+from tqdm import tqdm
 
 class SplitResults(SplitResultsInterface):
 
@@ -151,7 +152,7 @@ class CounterfactualEvaluation(CounterfactualEvaluationInterface):
         build_model_rngs_children = fork_rng(model_rng, n_iter)
         train_data_shuffle_rngs_children = fork_rng(shuffle_rng, n_iter)
 
-        for seed in range(n_iter):
+        for seed in tqdm(range(n_iter)):
 
             rows = []
             results = self._counterfactual_evaluation_results(partition, sample_indices=sample_indices, model_rng=build_model_rngs_children[seed], shuffle_rng=train_data_shuffle_rngs_children[seed])
