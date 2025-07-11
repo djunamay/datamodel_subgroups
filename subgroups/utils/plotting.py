@@ -38,7 +38,7 @@ def plot_scatter(x, y, hue, xlabel, ylabel, title, legend_title, cmap='viridis_r
 
 
 def get_corr(weights, index):
-    corr = np.corrcoef(weights[(index)])#[:,((index))])
+    corr = np.corrcoef(weights[(index)][:,((index))])
     corr = (corr+1)/2
     return corr
 
