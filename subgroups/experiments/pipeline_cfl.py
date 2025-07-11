@@ -32,7 +32,7 @@ def run_pipeline_counterfactuals(args: CounterfactualExperimentArgs):
 def pipeline_counterfactuals(experiment: Experiment, experiment_seed: int, n_iter: int, n_clusters: int, in_memory: bool, group_1: bool=True, sampling_size_factor: int=2):
 
     if not in_memory:
-        out_path = os.path.join(experiment.path, experiment.experiment_name, "clustering_outputs", "counterfactual_results.csv")
+        out_path = os.path.join(experiment.path, experiment.experiment_name, "clustering_outputs", f"batch_{experiment_seed}_nclusters_{n_clusters}_counterfactual_results.csv")
     else:
         out_path = None
     
