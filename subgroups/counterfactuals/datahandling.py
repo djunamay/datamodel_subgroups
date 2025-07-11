@@ -80,9 +80,9 @@ class CounterfactualInputsBasic(CounterfactualInputsInterface):
     def _features_filtered(self)->np.ndarray:
 
         tmp_data_low_removed = self._features[:,(np.sum(self._features==0, axis=0)<(0.3*self._features.shape[0]))]
-        avs = tmp_data_low_removed.groupby(self.sample_index).mean()
-        avs_array = np.array(avs) + np.finfo(float).eps
-        lfcs = np.array(np.abs(np.log2(avs_array[0]/avs_array[1])))
+        avs_grp1 = np.mean(tmp_data_low_removed[self.sample_index],axis=0)+ np.finfo(float).eps
+        avs_grp2 = np.mean(tmp_data_low_removed[np.invert(self.sample_index)],axis=0)+ np.finfo(float).eps
+        lfcs = np.array(np.abs(np.log2(avs_grp1/avs_grp2)))
         features_subset = self._features[:,np.argsort(lfcs)[-np.sum(self.sample_index):]]
         
         return features_subset[self.sample_index]

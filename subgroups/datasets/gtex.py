@@ -36,9 +36,10 @@ class GTEXDataset(BaseDataset):
         tpm_data = pd.read_csv(self.path_to_data, sep='\t', skiprows=2)
         tmp_data = tpm_data.iloc[:, 2:].T
         index = tmp_data.index
-        untransformed_data = tpm_data.values.astype(float)
+        untransformed_data = tmp_data.values.astype(float)
         tmp_data = self._reduce_dimensionality(untransformed_data, self.n_components)
         return tmp_data, index, untransformed_data
+
 
     @chz.init_property
     def untransformed_features(self):
