@@ -18,7 +18,7 @@ import chz
 from .combined_mask_margin import CombinedMaskMarginStorage
 from ..datasamplers.feature_selectors import SelectPCsBasic, SelectPCsSingleCell
 from ..counterfactuals.counterfactuals import CounterfactualEvaluation
-from ..counterfactuals.datahandling import CounterfactualInputsBasic
+from ..counterfactuals.datahandling import CounterfactualInputsBasic, CounterfactualInputsSingleCell
 
 # def gtex_experiment() -> Experiment:
 #     return Experiment(
@@ -388,7 +388,7 @@ def rosmap_singlecell_experiment_point_3() -> Experiment: # TODO: The overwrite 
         npcs=5,
         feature_selector=SelectPCsSingleCell(),
         counterfactual_test_fraction=0.1,
-        counterfactual_inputs=CounterfactualInputsBasic,
+        counterfactual_inputs=CounterfactualInputsSingleCell,
         counterfactual_estimator=CounterfactualEvaluation,
         datamodels_pipeline=DatamodelsPipelineBasic(datamodel_factory=LinearRegressionFactory(),
                                                     combined_mask_margin_storage=CombinedMaskMarginStorage(path_to_inputs=os.path.join(path, name, "classifier_outputs")),

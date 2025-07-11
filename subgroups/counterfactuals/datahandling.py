@@ -105,3 +105,35 @@ class CounterfactualInputsBasic(CounterfactualInputsInterface):
     @chz.init_property
     def to_counterfactual_inputs(self) -> CounterfactualInputs:
         return CounterfactualInputs(all_features_input=self._all_features_input, filtered_features_input=self._filtered_features_input, datamodel_input=self._datamodel_input)
+    
+
+@chz.chz
+class CounterfactualInputsSingleCell(CounterfactualInputsInterface):
+    
+    path_to_weights: str
+    dataset: DatasetInterface
+    group_1: bool
+
+    @chz.init_property
+    def sample_index(self)->np.ndarray:
+        return self.dataset.coarse_labels if self.group_1 else np.invert(self.dataset.coarse_labels)
+
+    @chz.init_property
+    def _features(self)->np.ndarray:
+        return self.dataset.untransformed_features
+
+    @chz.init_property
+    def _all_features_input(self)->np.ndarray:
+        return self._features[self.sample_index]
+    
+    @chz.init_property
+    def _datamodel_input(self)->np.ndarray:
+        weights, _ = load_weights_data(self.path_to_weights)
+        x = load_eval_data(self.path_to_weights, 'pearson_correlations')[0]
+        weights = weights[x!=0]
+        return weights[self.sample_index][:,self.sample_index]
+    
+    
+    @chz.init_property
+    def to_counterfactual_inputs(self) -> CounterfactualInputs:
+        return CounterfactualInputs(all_features_input=self._all_features_input, datamodel_input=self._datamodel_input)
