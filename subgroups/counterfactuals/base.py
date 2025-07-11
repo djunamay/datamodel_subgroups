@@ -2,6 +2,8 @@ import numpy as np
 import chz
 from abc import ABC, abstractmethod
 from numpy.typing import NDArray
+from dataclasses import dataclass, field
+from typing import Tuple, Iterator, Union, Any
 
 class SplitResultsInterface(ABC):
 
@@ -65,21 +67,57 @@ class PartitionStorageInterface(ABC):
     def n_partitions(self)-> int:
         ...
 
-@chz.chz
-@abstractmethod
-class CounterfactualInputsInterface(ABC):
-    @abstractmethod
-    @chz.init_property
-    def pca_input(self)->np.ndarray:
-        ...
-    
-    @abstractmethod
-    @chz.init_property
-    def datamodel_input(self)->np.ndarray:
-        ...
 
-    @abstractmethod
-    @chz.init_property
-    def pca_filtered_input(self)->np.ndarray:
-        ...
+@dataclass
+class CounterfactualInputs:
+    names: Tuple[str, ...] = field(init=False, repr=False)
+    matrices: Tuple[np.ndarray, ...] = field(init=False, repr=False)
+
+    def __init__(self, **named_matrices: Union[np.ndarray, Any]) -> None:
+        """
+        Accept any number of keyword‐arguments, where each key is a name
+        and each value is a numpy array (or array‐like). E.g.:
+        
+            CounterfactualInputs(A=A, B=B, C=C)
+        """
+        # store the names in insertion order
+        self.names = tuple(named_matrices.keys())
+        # convert to numpy arrays
+        self.matrices = tuple(np.asarray(m) for m in named_matrices.values())
+
+    def __iter__(self) -> Iterator[Tuple[str, np.ndarray]]:
+        """
+        Iterate over (name, matrix) pairs.
+        """
+        return iter(zip(self.names, self.matrices))
+
+    def __len__(self) -> int:
+        """
+        Number of matrices.
+        """
+        return len(self.matrices)
+
+    def __getitem__(self, idx: Union[int, slice]
+                    ) -> Union[Tuple[str, np.ndarray],
+                               Tuple[Tuple[str, np.ndarray], ...]]:
+        """
+        Indexing or slicing returns name/matrix pairs.
+        """
+        items = tuple(zip(self.names, self.matrices))
+        return items[idx]
     
+class CounterfactualInputsInterface(ABC):
+    """
+    Abstract interface that defines the contract for building counterfactual inputs.
+    All implementations must return a CounterfactualInputs instance.
+    """
+    @property
+    @abstractmethod
+    def to_counterfactual_inputs(self) -> CounterfactualInputs:
+        """
+        Build and return a CounterfactualInputs object containing all named input matrices.
+
+        Returns:
+            CounterfactualInputs: a data container of named matrices for counterfactual analysis.
+        """
+        ...

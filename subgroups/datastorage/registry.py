@@ -17,6 +17,8 @@ from ..datasets.gtex import GTEXDataset
 import chz
 from .combined_mask_margin import CombinedMaskMarginStorage
 from ..datasamplers.feature_selectors import SelectPCsBasic, SelectPCsSingleCell
+from ..counterfactuals.counterfactuals import CounterfactualEvaluation
+from ..counterfactuals.datahandling import CounterfactualInputsBasic
 
 # def gtex_experiment() -> Experiment:
 #     return Experiment(
@@ -107,6 +109,9 @@ def gtex_subset_experiment() -> Experiment:
         npcs_max=500,
         npcs=20,
         feature_selector=SelectPCsBasic(),
+        counterfactual_test_fraction=0.1,
+        counterfactual_inputs=CounterfactualInputsBasic,
+        counterfactual_estimator=CounterfactualEvaluation,
         datamodels_pipeline=DatamodelsPipelineBasic(datamodel_factory=LinearRegressionFactory(),
                                                     combined_mask_margin_storage=CombinedMaskMarginStorage(path_to_inputs=os.path.join(path, name, "classifier_outputs")),
                                                     path_to_outputs=os.path.join(path, name, "datamodel_outputs")),

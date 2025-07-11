@@ -2,9 +2,7 @@ import numpy as np
 from numpy.typing import NDArray
 from ..models.base import SklearnClassifier
 import chz
-from .base import PartitionStorageInterface, CounterfactualInputsInterface
-from dataclasses import dataclass, field
-from typing import Tuple, Iterator, Union, Any
+from .base import PartitionStorageInterface, CounterfactualInputsInterface, CounterfactualInputs
 import numpy as np
 import pandas as pd
 from ..utils.loading import load_weights_data, load_eval_data
@@ -62,47 +60,8 @@ class PartitionStorageBase(PartitionStorageInterface):
         return len(np.unique(self.partitions))
 
 
-@dataclass
-class CounterfactualInputs:
-    names: Tuple[str, ...] = field(init=False, repr=False)
-    matrices: Tuple[np.ndarray, ...] = field(init=False, repr=False)
-
-    def __init__(self, **named_matrices: Union[np.ndarray, Any]) -> None:
-        """
-        Accept any number of keyword‐arguments, where each key is a name
-        and each value is a numpy array (or array‐like). E.g.:
-        
-            CounterfactualInputs(A=A, B=B, C=C)
-        """
-        # store the names in insertion order
-        self.names = tuple(named_matrices.keys())
-        # convert to numpy arrays
-        self.matrices = tuple(np.asarray(m) for m in named_matrices.values())
-
-    def __iter__(self) -> Iterator[Tuple[str, np.ndarray]]:
-        """
-        Iterate over (name, matrix) pairs.
-        """
-        return iter(zip(self.names, self.matrices))
-
-    def __len__(self) -> int:
-        """
-        Number of matrices.
-        """
-        return len(self.matrices)
-
-    def __getitem__(self, idx: Union[int, slice]
-                    ) -> Union[Tuple[str, np.ndarray],
-                               Tuple[Tuple[str, np.ndarray], ...]]:
-        """
-        Indexing or slicing returns name/matrix pairs.
-        """
-        items = tuple(zip(self.names, self.matrices))
-        return items[idx]
-
-
 @chz.chz
-class CounterfactualInputsGTExSubset(CounterfactualInputsInterface):
+class CounterfactualInputsBasic(CounterfactualInputsInterface):
     
     path_to_features: str
     path_to_weights: str
@@ -131,18 +90,22 @@ class CounterfactualInputsGTExSubset(CounterfactualInputsInterface):
         return features_subset.loc[self.sample_index].values.astype(float)
 
     @chz.init_property
-    def pca_input(self)->np.ndarray:
+    def _pca_input(self)->np.ndarray:
         
         return self._features.loc[self.sample_index].values.astype(float)
     
     @chz.init_property
-    def datamodel_input(self)->np.ndarray:
+    def _datamodel_input(self)->np.ndarray:
         weights, _ = load_weights_data(self.path_to_weights)
         x = load_eval_data(self.path_to_weights, 'pearson_correlations')[0]
         weights = weights[x!=0]
         return weights[self.sample_index][:,self.sample_index]
     
     @chz.init_property
-    def pca_filtered_input(self)->np.ndarray:
+    def _pca_filtered_input(self)->np.ndarray:
 
         return self._features_filtered
+    
+    @chz.init_property
+    def to_counterfactual_inputs(self) -> CounterfactualInputs:
+        return CounterfactualInputs(pca_input=self._pca_input, datamodel_input=self._datamodel_input, pca_filtered_input=self._pca_filtered_input)

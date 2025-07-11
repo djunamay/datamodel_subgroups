@@ -158,5 +158,4 @@ def test_counterfactual_evaluation_results():
     temp = res[res['split']=='split_b']
     assert rocauc_1_2==float(temp[temp['prob_type']=='evaluation_outside_split']['auc'])
 
-# TODO: after this just write tests for the gtex data
 

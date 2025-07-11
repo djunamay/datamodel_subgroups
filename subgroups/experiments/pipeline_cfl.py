@@ -1,9 +1,8 @@
-from .run_counterfactuals import get_cfg_inputs, run_counterfactuals
+from .run_counterfactuals import run_counterfactuals
 import chz
 import numpy as np
 from subgroups.utils.random import fork_rng
 from ..counterfactuals.base import CounterfactualInputsInterface, CounterfactualEvaluationInterface
-from ..counterfactuals.datahandling import CounterfactualInputsBasic
 from ..datastorage.experiment import Experiment
 import os
 
@@ -21,9 +20,8 @@ class CounterfactualExperimentArgs:
 
 def run_pipeline_counterfactuals(args: CounterfactualExperimentArgs):
     
-    children = fork_rng(np.random.default_rng(args.experiment_seed), 2)
-    cfg = get_cfg_inputs(args.counterfactual_inputs.pca_input, args.counterfactual_inputs.datamodel_input, args.counterfactual_inputs.pca_filtered_input)
-    results = run_counterfactuals(cfg, args.counterfactual_estimator, n_iter=args.n_iter, n_clusters=args.n_clusters, model_rng=children[0], shuffle_rng=children[1])
+    children = fork_rng(np.random.default_rng(args.experiment_seed), 3)
+    results = run_counterfactuals(args.counterfactual_inputs.to_counterfactual_inputs, args.counterfactual_estimator, n_iter=args.n_iter, n_clusters=args.n_clusters, random_state=children[0], model_rng=children[1], shuffle_rng=children[2])
 
     if args.in_memory:
         return results
@@ -31,7 +29,7 @@ def run_pipeline_counterfactuals(args: CounterfactualExperimentArgs):
         results.to_csv(args.path, index=False)
         return args.path
     
-def pipeline_counterfactuals(experiment: Experiment, experiment_seed: int, n_iter: int, n_clusters: int, in_memory: bool, group_1: bool=True):
+def pipeline_counterfactuals(experiment: Experiment, experiment_seed: int, n_iter: int, n_clusters: int, in_memory: bool, group_1: bool=True, sampling_size_factor: int=2):
 
     if not in_memory:
         out_path = os.path.join(experiment.path, experiment.experiment_name, "clustering_outputs", "counterfactual_results.csv")
@@ -39,15 +37,15 @@ def pipeline_counterfactuals(experiment: Experiment, experiment_seed: int, n_ite
         out_path = None
     
     counterfactual_inputs = experiment.counterfactual_inputs(path_to_features=experiment.dataset.path_to_data, 
-                                                       path_to_weights=experiment.datamodels_pipeline.path_to_outputs, 
+                                                       path_to_weights=os.path.join(experiment.path, experiment.experiment_name, "datamodel_outputs"), 
                                                        dataset=experiment.dataset,
-                                                       group_1=False)
+                                                       group_1=group_1)
 
 
-    counterfactual_estimator = experiment.counterfactual_estimator(features=experiment.dataset.features[:,experiment.feature_selector().feature_indices(n_pcs=20)],
+    counterfactual_estimator = experiment.counterfactual_estimator(features=experiment.dataset.features[:,experiment.feature_selector.feature_indices(n_pcs=experiment.npcs)],
                                                         coarse_labels=experiment.dataset.coarse_labels,
-                                                        train_size=int((experiment.mask_factory.alpha*experiment.dataset.num_samples)/2), # corresponds to approx original model alpha of 0.012507530044163674
-                                                        test_size=int((experiment.counterfactual_test_fraction*experiment.dataset.num_samples)/2),
+                                                        train_size=int((experiment.mask_factory.alpha*experiment.dataset.num_samples)/sampling_size_factor), # corresponds to approx original model alpha of 0.012507530044163674
+                                                        test_size=int((experiment.counterfactual_test_fraction*experiment.dataset.num_samples)/sampling_size_factor),
                                                         classifier=experiment.model_factory,
                                                         group_1=group_1)
 
