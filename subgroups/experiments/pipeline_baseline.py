@@ -8,7 +8,8 @@ import os
 import chz
 import pandas as pd
 from sklearn.utils import shuffle
-
+from typing import Union
+ 
 
 def fit_single_classifier(split_rng, build_model_rngs, feature_label_dict, model_factory, train_size_per_class, test_size_per_class):
 
@@ -80,7 +81,7 @@ def run_baseline(n_models,experiment,batch_starter_seed,train_size=0.7,test_size
     return pd.DataFrame({'aucs': all_aucs, 'mean_margins': all_margins})
 
 
-def pipeline_baseline(experiment: Experiment, batch_starter_seed: int, n_models: int, train_size: int, test_size: int, in_memory: bool):
+def pipeline_baseline(experiment: Experiment, batch_starter_seed: int, n_models: int, train_size: Union[int, float], test_size: Union[int, float], in_memory: bool):
 
     results = run_baseline(n_models, experiment, batch_starter_seed, train_size, test_size)
 
