@@ -88,9 +88,9 @@ def pipeline_baseline(experiment: Experiment, batch_starter_seed: int, n_models:
     if in_memory:
         return results
     else:
-        path = os.path.join(experiment.path, experiment.experiment_name, "datamodel_outputs", f'baseline_results_batch_{batch_starter_seed}_train_{train_size}_test_{test_size}.csv')
+        path = os.path.join(experiment.path, experiment.experiment_name, "clustering_outputs", f'baseline_results_batch_{batch_starter_seed}_train_{train_size}_test_{test_size}.csv')
         results.to_csv(path, index=False)
-        return path
+        print(f"Baseline results saved to {path}")
     
     
 
