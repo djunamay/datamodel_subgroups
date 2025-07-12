@@ -234,7 +234,7 @@ def ace_plasma_csf_proteomics_amnestic_experiment() -> Experiment: # TODO: The o
         npcs_max=500,
         npcs=47,
         feature_selector=SelectPCsBasic(),
-        counterfactual_inputs=CounterfactualInputsBasic,
+        counterfactual_inputs=CounterfactualInputsSingleCell,
         counterfactual_estimator=CounterfactualEvaluation,
         datamodels_pipeline=DatamodelsPipelineBasic(datamodel_factory=LinearRegressionFactory(),
                                                     combined_mask_margin_storage=CombinedMaskMarginStorage(path_to_inputs=os.path.join(path, name, "classifier_outputs")),
