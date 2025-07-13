@@ -46,7 +46,7 @@ def extract_auc_diffs(all_data):
     
     return df_wide
 
-def plot_auc_diffs(all_data, df_wide, tissue):
+def plot_auc_diffs(all_data, df_wide, tissue, order=['unfiltered F', 'filtered F', 'datamodel'], baseline_mean=None):
 
     fig, axes = plt.subplots(1, 3, figsize=(12.5, 3.5), sharey=False, sharex=False)
 
@@ -71,12 +71,13 @@ def plot_auc_diffs(all_data, df_wide, tissue):
                     'medianprops':  {'alpha': 0.8},
                     'width': 0.8
                 },
-                order = ['unfiltered F', 'filtered F', 'datamodel'],
+                order = order,
                 stripplot_kwargs={'alpha': 0.6, 'size': 0}
             )
         
-        val = data_subset[data_subset['input']=='datamodel']['mean_auc'].mean()
-        axes[i].axhline(val, linestyle=':', label=f'$\mu_{'datamodel'}$', color='red')
+        #val = data_subset[data_subset['input']=='datamodel']['mean_auc'].mean()
+        axes[i].axhline(baseline_mean, linestyle=':', label=f'$\mu_{'baseline'}$', color='red')
+
         axes[i].get_legend().remove()
     
 
@@ -97,19 +98,43 @@ def plot_auc_diffs(all_data, df_wide, tissue):
                 'medianprops':  {'alpha': 0.8},
                 'width': 0.8
             },
-            order = ['unfiltered F', 'filtered F', 'datamodel'],
+            order = order,
             stripplot_kwargs={'alpha': 0.6, 'size': 0}
         )
 
-    val = df_wide[df_wide['input']=='datamodel']['mean_auc_diff'].mean()
+    #val = df_wide[df_wide['input']=='datamodel']['mean_auc_diff'].mean()
+    import matplotlib.lines as mlines
 
-    axes[2].axhline(val, linestyle=':', label=r'$\mu_{\mathrm{datamodel}}$', color='red')
-    axes[2].legend(
-    loc='upper left',              # anchor the legend’s “upper left” corner
-    bbox_to_anchor=(1.02, 1),      # at (x=1.02, y=1) in axes coords
-    borderaxespad=0,
-    title='N partitions',      
-    frameon=False          # no padding between axes and legend
+    ax = axes[2]
+
+    # 1) Don’t draw the actual baseline line
+    #    (so remove or comment out your axhline for baseline)
+    # ax.axhline(baseline_mean, linestyle=':', label=r'$\mu_{\mathrm{baseline}}$', color='red')
+
+    # 2) Create a proxy Line2D matching the style you want in the legend:
+    baseline_proxy = mlines.Line2D(
+        [], [], 
+        linestyle=':', 
+        color='red', 
+        label=r'$\mu_{\mathrm{baseline}}$'
+    )
+
+    # 3) Grab the existing legend entries:
+    handles, labels = ax.get_legend_handles_labels()
+
+    # 4) Append your proxy:
+    handles.append(baseline_proxy)
+    labels.append(r'$\mu_{\mathrm{baseline}}$')
+
+    # 5) Re-draw the legend with everything, plus your formatting choices:
+    ax.legend(
+        handles=handles,
+        labels=labels,
+        loc='upper left',
+        bbox_to_anchor=(1.02, 1),
+        borderaxespad=0,
+        title='N partitions',
+        frameon=False
     )
 
     for ax in axes:
