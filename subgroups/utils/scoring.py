@@ -76,3 +76,5 @@ def compute_signal_noise(margins: NDArray[float], masks: NDArray[bool], ddof: in
     noise = np.ma.mean(V_init, axis=0)
     snr = signal/np.ma.maximum(noise, 1e-12)
     return snr.filled(np.nan)
+
+

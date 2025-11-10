@@ -29,6 +29,16 @@ def gtex_subset() -> GTEXDataset:
         n_components=500
     )
 
+def gtex_subset_home() -> GTEXDataset:
+    
+    return GTEXDataset(
+        path_to_data="/Users/djuna/Documents/CurrentDocuments/current_projects_data/subgroups_data/gtex_subset/subset_esophagus_bloodvessel.gct",
+        path_to_meta_data='/Users/djuna/Documents/CurrentDocuments/current_projects_data/subgroups_data/gtex/GTEx_Analysis_v10_Annotations_SampleAttributesDS.txt',
+        path_to_sample_metadata='/Users/djuna/Documents/CurrentDocuments/current_projects_data/subgroups_data/gtex/GTEx_Analysis_v10_Annotations_SubjectPhenotypesDS.txt',
+        predicted_class='Esophagus',
+        n_components=500
+    )
+
 def ace_csf_proteomics() -> AceDataset:
     return AceDataset(
         path_to_data = '/home/Genomica/03-Collabs/djuna/data/202112_Somascan_harpone_db_CSF_ACE_n1370.txt',

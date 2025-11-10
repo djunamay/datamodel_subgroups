@@ -1,4 +1,4 @@
-from ..datasets.registry import gtex, gtex_subset, ace_csf_proteomics, ace_plasma_proteomics, rosmap_singlecell, ace_plasma_csf_proteomics
+from ..datasets.registry import gtex, gtex_subset, ace_csf_proteomics, ace_plasma_proteomics, rosmap_singlecell, ace_plasma_csf_proteomics, gtex_subset_home
 from ..datasets.test_data import RandomDataset
 from ..datasamplers.mask_generators import fixed_alpha_mask_factory
 from ..models.classifier import XgbFactory
@@ -17,8 +17,8 @@ from ..datasets.gtex import GTEXDataset
 import chz
 from .combined_mask_margin import CombinedMaskMarginStorage
 from ..datasamplers.feature_selectors import SelectPCsBasic, SelectPCsSingleCell
-from ..counterfactuals.counterfactuals import CounterfactualEvaluation
-from ..counterfactuals.datahandling import CounterfactualInputsBasic, CounterfactualInputsSingleCell
+#from ..counterfactuals.counterfactuals import CounterfactualEvaluation
+#from ..counterfactuals.datahandling import CounterfactualInputsBasic, CounterfactualInputsSingleCell
 
 # def gtex_experiment() -> Experiment:
 #     return Experiment(
@@ -35,24 +35,13 @@ from ..counterfactuals.datahandling import CounterfactualInputsBasic, Counterfac
 #     )
 
 def gtex_subset_experiment_home() -> Experiment:
-    path = "/Users/djuna/Documents/temp/results/"
-    name = "gtex_subset_experiment_home"
-    try:
-        parameters, alpha = return_best_model_architecture(os.path.join(path, name, "snr_outputs"), acc_cutoff=0)
-        mask_factory = fixed_alpha_mask_factory(**alpha)
-        model_factory = XgbFactory(**parameters)
-    except ValueError:
-        mask_factory = fixed_alpha_mask_factory(alpha=0.01)
-        model_factory = XgbFactory()
+    path = "/Users/djuna/Documents/CurrentDocuments/current_projects_code/temp/results/"
+    name = "gtex_subset_experiment_june_30"
+    mask_factory = fixed_alpha_mask_factory(alpha=0.012507530044163674)
+    model_factory = XgbFactory(max_depth=7)
 
     return Experiment(
-        dataset=GTEXDataset(
-        path_to_data="/Users/djuna/Documents/subgroups_data/gtex_subset/subset_esophagus_bloodvessel.gct",
-        path_to_meta_data='/Users/djuna/Documents/subgroups_data/gtex/GTEx_Analysis_v10_Annotations_SampleAttributesDS.txt',
-        path_to_sample_metadata='/Users/djuna/Documents/subgroups_data/gtex/GTEx_Analysis_v10_Annotations_SubjectPhenotypesDS.txt',
-        predicted_class='Esophagus',
-        n_components=500
-    ),
+        dataset=gtex_subset_home(),
         mask_factory=mask_factory,
         model_factory=model_factory,
         model_factory_initializer=XgbFactoryInitializer(), 
@@ -66,17 +55,19 @@ def gtex_subset_experiment_home() -> Experiment:
         experiment_name=name,
         stopping_condition=SNRPrecisionStopping(tolerance=0.1),
         indices_to_fit=SequentialIndices(batch_size=50),
-        dm_n_train=9000,
-        dm_n_test=1000,
+        dm_n_train=1500000,
+        dm_n_test=500000,
         npcs_min=5,
         npcs_max=500,
-        npcs=500,
+        npcs=20,
         feature_selector=SelectPCsBasic(),
+        #counterfactual_inputs=CounterfactualInputsBasic,
+        #counterfactual_estimator=CounterfactualEvaluation,
         datamodels_pipeline=DatamodelsPipelineBasic(datamodel_factory=LinearRegressionFactory(),
                                                     combined_mask_margin_storage=CombinedMaskMarginStorage(path_to_inputs=os.path.join(path, name, "classifier_outputs")),
                                                     path_to_outputs=os.path.join(path, name, "datamodel_outputs")),
     )
-
+    
 def gtex_subset_experiment() -> Experiment:
     path = "/orcd/data/lhtsai/001/djuna/results/"
     name = "gtex_subset_experiment_june_30"
@@ -109,8 +100,8 @@ def gtex_subset_experiment() -> Experiment:
         npcs_max=500,
         npcs=20,
         feature_selector=SelectPCsBasic(),
-        counterfactual_inputs=CounterfactualInputsBasic,
-        counterfactual_estimator=CounterfactualEvaluation,
+        #counterfactual_inputs=CounterfactualInputsBasic,
+        #counterfactual_estimator=CounterfactualEvaluation,
         datamodels_pipeline=DatamodelsPipelineBasic(datamodel_factory=LinearRegressionFactory(),
                                                     combined_mask_margin_storage=CombinedMaskMarginStorage(path_to_inputs=os.path.join(path, name, "classifier_outputs")),
                                                     path_to_outputs=os.path.join(path, name, "datamodel_outputs")),
@@ -234,8 +225,8 @@ def ace_plasma_csf_proteomics_amnestic_experiment() -> Experiment: # TODO: The o
         npcs_max=500,
         npcs=47,
         feature_selector=SelectPCsBasic(),
-        counterfactual_inputs=CounterfactualInputsSingleCell,
-        counterfactual_estimator=CounterfactualEvaluation,
+        #counterfactual_inputs=CounterfactualInputsSingleCell,
+        #counterfactual_estimator=CounterfactualEvaluation,
         datamodels_pipeline=DatamodelsPipelineBasic(datamodel_factory=LinearRegressionFactory(),
                                                     combined_mask_margin_storage=CombinedMaskMarginStorage(path_to_inputs=os.path.join(path, name, "classifier_outputs")),
                                                     path_to_outputs=os.path.join(path, name, "datamodel_outputs")),
@@ -314,8 +305,8 @@ def rosmap_singlecell_experiment() -> Experiment: # TODO: The overwrite config d
         npcs=5,
         feature_selector=SelectPCsSingleCell(),
         counterfactual_test_fraction=0.1,
-        counterfactual_inputs=CounterfactualInputsBasic,
-        counterfactual_estimator=CounterfactualEvaluation,
+        #counterfactual_inputs=CounterfactualInputsBasic,
+        #counterfactual_estimator=CounterfactualEvaluation,
         datamodels_pipeline=DatamodelsPipelineBasic(datamodel_factory=LinearRegressionFactory(),
                                                     combined_mask_margin_storage=CombinedMaskMarginStorage(path_to_inputs=os.path.join(path, name, "classifier_outputs")),
                                                     path_to_outputs=os.path.join(path, name, "datamodel_outputs")),
@@ -385,8 +376,8 @@ def rosmap_singlecell_experiment_point_3() -> Experiment: # TODO: The overwrite 
         npcs_max=50,
         npcs=5,
         feature_selector=SelectPCsSingleCell(),
-        counterfactual_inputs=CounterfactualInputsSingleCell,
-        counterfactual_estimator=CounterfactualEvaluation,
+        #counterfactual_inputs=CounterfactualInputsSingleCell,
+        #counterfactual_estimator=CounterfactualEvaluation,
         datamodels_pipeline=DatamodelsPipelineBasic(datamodel_factory=LinearRegressionFactory(),
                                                     combined_mask_margin_storage=CombinedMaskMarginStorage(path_to_inputs=os.path.join(path, name, "classifier_outputs")),
                                                     path_to_outputs=os.path.join(path, name, "datamodel_outputs")),

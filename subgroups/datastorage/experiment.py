@@ -11,7 +11,7 @@ from typing import Type
 from ..datamodels.base import DatamodelsPipelineInterface
 from ..datamodels.indices import IndicesFunction
 from ..datasamplers.feature_selectors import SelectPCsInterface
-from ..counterfactuals.base import CounterfactualInputsInterface, CounterfactualEvaluationInterface
+#from ..counterfactuals.base import CounterfactualInputsInterface, CounterfactualEvaluationInterface
 
 @chz.chz
 class Experiment:
@@ -69,8 +69,8 @@ class Experiment:
     npcs_max: int=chz.field(default=50, doc='Maximum number of PCs to use for the SNR experiment.')
     feature_selector: SelectPCsInterface=chz.field(default=None, doc='Feature selector for the experiment.')
     npcs: int=chz.field(default=None, doc='Number of PCs to use for the experiment.')
-    counterfactual_inputs: CounterfactualInputsInterface=chz.field(default=None, doc='Counterfactual inputs for the experiment.')
-    counterfactual_estimator: CounterfactualEvaluationInterface=chz.field(default=None, doc='Counterfactual estimator for the experiment.')
+   # counterfactual_inputs: None #CounterfactualInputsInterface=chz.field(default=None, doc='Counterfactual inputs for the experiment.')
+   # counterfactual_estimator: None #CounterfactualEvaluationInterface=chz.field(default=None, doc='Counterfactual estimator for the experiment.')
 
     @chz.init_property
     def _check_path(self):

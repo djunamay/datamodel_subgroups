@@ -46,7 +46,7 @@ def extract_auc_diffs(all_data):
     
     return df_wide
 
-def plot_auc_diffs(all_data, df_wide, tissue, order=['unfiltered F', 'filtered F', 'datamodel'], baseline_mean=None):
+def plot_auc_diffs(all_data, df_wide, tissue, order=['unfiltered F', 'filtered F', 'datamodel'], baseline_mean=None, val_to_plot_diff='mean_auc_diff', val_to_plot='mean_auc'):
 
     fig, axes = plt.subplots(1, 3, figsize=(12.5, 3.5), sharey=False, sharex=False)
 
@@ -55,7 +55,7 @@ def plot_auc_diffs(all_data, df_wide, tissue, order=['unfiltered F', 'filtered F
         plot_cat_continuous(
                 data=data_subset,
                 cat_col='input',
-                cont_col='mean_auc',
+                cont_col=val_to_plot,#'mean_auc',
                 test=None,
                 text_format='full',
                 hue = 'nclusters',
@@ -84,7 +84,7 @@ def plot_auc_diffs(all_data, df_wide, tissue, order=['unfiltered F', 'filtered F
     plot_cat_continuous(
             data=df_wide,
             cat_col='input',
-            cont_col='mean_auc_diff',
+            cont_col=val_to_plot_diff,#'mean_auc_diff',
             test=None,
             text_format='full',
             hue = 'nclusters',
