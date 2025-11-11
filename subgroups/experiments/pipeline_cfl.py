@@ -16,7 +16,7 @@ def pipeline_cfl(experiment: Experiment, split_factory: SplitFactoryInterface, n
     training_output = run_counterfactual_for_one_split(args)
     
     if in_memory:
-        return return_counterfactual_outputs(training_output, n_models=n_models, split=split)
+        return return_counterfactual_outputs(training_output, split=split)
     else:
         print(f"Train classifier output saved to {training_output}")
 
