@@ -1,4 +1,6 @@
 [core]
-    remote = results
+    remote = raw
 ['remote "results"']
+    url = gs://subtypes-results
+['remote "raw"']
     url = gs://subtypes-raw
