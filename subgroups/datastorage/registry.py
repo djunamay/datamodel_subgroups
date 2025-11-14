@@ -35,7 +35,7 @@ from ..datasamplers.feature_selectors import SelectPCsBasic, SelectPCsSingleCell
 #     )
 
 def gtex_subset_experiment_home() -> Experiment:
-    path = "/Users/djuna/Documents/CurrentDocuments/current_projects_code/temp/results/"
+    path = "/Users/djuna/Documents/CurrentDocuments/current_projects_code/datamodel_subgroups/results/"
     name = "gtex_subset_experiment_june_30"
     mask_factory = fixed_alpha_mask_factory(alpha=0.012507530044163674)
     model_factory = XgbFactory(max_depth=7)

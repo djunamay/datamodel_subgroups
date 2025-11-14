@@ -167,3 +167,5 @@ class Experiment:
                 os.makedirs(self.path_to_plots)
                 os.makedirs(self.path_to_snr_outputs)
 
+    
+    

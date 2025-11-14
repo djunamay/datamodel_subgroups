@@ -119,3 +119,5 @@ class GTEXDataset(BaseDataset):
         Descriptive data (shape: [n_samples, n_descriptive_features]).
         """
         return self._descriptive_data
+    
+    

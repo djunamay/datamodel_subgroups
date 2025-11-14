@@ -4,6 +4,10 @@ import numpy as np
 from ..datastorage.registry import RandomDataset
 from ..counterfactuals.outputs import ReturnCounterfactualOutputsBasic
 import pytest
+from ..datastorage.registry import random_dataset_experiment
+from ..counterfactuals.base import SplitFactoryInterface
+from numpy.typing import NDArray 
+import chz
 
 class _DummyStorage:
     """Mimics MaskMarginStorageInterface: holds margins, masks, labels."""
@@ -164,3 +168,61 @@ def test_ReturnCounterfactualOutputsBasic_Error_4():
     with pytest.raises(ValueError, match='Split_B was used to train on. Only Split_A should be used for training.'):
         func(storage, split)
     #print(func._return_split_indices(split, storage, 1))
+
+def test_B_is_remainder_of_A_within_class_1():
+    func = ReturnCounterfactualOutputsBasic()
+
+    labels = np.array([0,1,1,1, 0,1,0,1], dtype=bool)
+    split = np.array([0,1,1,1, 0,0,0,0], dtype=bool)
+
+    A, B = func._return_split_indices(split, labels, 1)
+
+    assert A.sum() == split.sum()
+
+    assert B.sum() == labels.sum()-split.sum()
+
+def test_B_is_NOT_remainder_of_A_within_class_1():
+
+    eligible_samples = np.array([0,1,1,1, 0,1,0,0], dtype=bool)
+    func = ReturnCounterfactualOutputsBasic(eligible_samples)
+
+    split = np.array([0,1,1,1, 0,0,0,0], dtype=bool)
+    labels = np.array([0,1,1,1, 0,1,0,1], dtype=bool)
+
+    A, B = func._return_split_indices(split, labels, 1)
+
+    assert A.sum() == split.sum()
+
+    assert B.sum() == eligible_samples.sum()-split.sum()
+
+
+def test_equal_train_numbers_per_split():
+    """
+    Test that training on splits of different sizes still results in constant training sizes.
+    """
+
+    experiment = random_dataset_experiment()
+
+    @chz.chz
+    class SequentialSplitter(SplitFactoryInterface):
+        r: NDArray[bool]
+
+        @chz.init_property
+        def _indices(self):
+            return np.argwhere(self.r).reshape(-1)
+
+        def split(self, k):
+            split = np.zeros(len(self.r), dtype=bool)
+            split[self._indices[:k]] = True
+            return split
+        
+    r = experiment.dataset.coarse_labels
+    splitter = SequentialSplitter(r=r)
+
+    for k in np.arange(150,500,100):
+        split = splitter.split(k)
+        counterfactual_mask_factory = CounterfactualMaskFactory(split=split, alpha=experiment.mask_factory.alpha)
+        masks = counterfactual_mask_factory.get_masks(experiment.dataset.coarse_labels, experiment.tc_random_generator(10).train_data_shuffle_rng)
+
+        assert experiment.dataset.coarse_labels[masks].sum()/masks.sum() == 0.5
+        assert masks.sum() == experiment.mask_factory.alpha*len(r)

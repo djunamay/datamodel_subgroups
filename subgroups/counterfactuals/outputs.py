@@ -1,15 +1,16 @@
 
-from .base import ReturnCounterfactualOutputInterface
-from ..datastorage.base import MaskMarginStorageInterface
+from subgroups.counterfactuals.base import ReturnCounterfactualOutputInterface
+from subgroups.datastorage.base import MaskMarginStorageInterface
 from typing import Callable
 from subgroups.datastorage.base import MaskMarginStorageInterface
 from subgroups.datastorage.experiment import Experiment
 from subgroups.counterfactuals.base import SplitFactoryInterface
 from numpy.typing import NDArray
 from sklearn.metrics import roc_auc_score, average_precision_score, accuracy_score
-from ..datastorage.counterfactuals import CounterfactualOutputs
+from subgroups.datastorage.counterfactuals import CounterfactualOutputs
 import numpy as np
-
+from numpy.typing import NDArray
+from typing import Optional
 
 class ReturnCounterfactualOutputsBasic(ReturnCounterfactualOutputInterface):
     """
@@ -19,6 +20,20 @@ class ReturnCounterfactualOutputsBasic(ReturnCounterfactualOutputInterface):
     which samples of one class were available for training, this class computes model accuracy 
     on those held-out samples (split A) versus the complementary held-out samples of that class (split B).
     """
+    def __init__(
+        self,
+        eligible_split_samples: Optional[NDArray[np.bool_]] = None,
+    ):
+        """
+        Parameters
+        ----------
+        eligible_split_samples : NDArray[bool] or None
+            If provided, defines which samples are eligible to belong to Split_B.
+            Must be a boolean array of shape (n_samples,). If None, Split_B is
+            defined as all samples of the same class that are not in Split_A.
+        """
+        self.eligible_split_samples = eligible_split_samples
+
     def __call__(self, training_output: MaskMarginStorageInterface, split: NDArray[bool]) -> CounterfactualOutputs:
         """
         Returns class CounterfactualOutputs based on input training data.
@@ -46,7 +61,7 @@ class ReturnCounterfactualOutputsBasic(ReturnCounterfactualOutputInterface):
         if len(split_class)>1:
             raise ValueError('Split vector should index a subset of class 0 OR 1, right now it indexes both classes.')
 
-        split_A, split_B = self._return_split_indices(split, training_output, split_class)
+        split_A, split_B = self._return_split_indices(split, training_output.labels, split_class)
 
         if not np.array_equal(
             np.unique(training_output.labels[split_A]),
@@ -71,8 +86,7 @@ class ReturnCounterfactualOutputsBasic(ReturnCounterfactualOutputInterface):
         return CounterfactualOutputs(acc_on_split_A = acc_on_split_A, acc_on_split_B = acc_on_split_B, acc_diff = acc_diff)
       
     
-    @staticmethod
-    def _return_split_indices(split, training_output, split_class):
+    def _return_split_indices(self, split, labels, split_class):
         """
         Returns boolean vectors corresponding to split A and split B samples. 
 
@@ -92,8 +106,12 @@ class ReturnCounterfactualOutputsBasic(ReturnCounterfactualOutputInterface):
             Model training outputs for training regime where for split_class only samples in split were fair game (for the opposite class all samples were fair game)
         """
         index_split_A = split
-        same_class_mask = training_output.labels == split_class
-        index_split_B = ~split & same_class_mask
+        same_class_mask = labels == split_class
+
+        if self.eligible_split_samples is None:
+            index_split_B = ~split & same_class_mask
+        else:
+            index_split_B = ~split & same_class_mask & self.eligible_split_samples
         return index_split_A, index_split_B
 
     @staticmethod
