@@ -8,19 +8,9 @@ from ..datastorage.experiment import Experiment
 from ..datastorage.base import MaskMarginStorageInterface
 from ..datastorage.counterfactuals import CounterfactualOutputs
 
-class SplitFactoryInterface(ABC):
-    """
-    Class that takes as input a dataclass of type ResultsStorageInterface and returns a boolean split vector of length N_samples.
-    """
-    experiment: Experiment
-
-    @property
-    @abstractmethod
-    def split(self) -> NDArray[bool]:
-        ...
 
 class ReturnCounterfactualOutputInterface:
-    """A callable class that takes a MaskMarginStorageInterface and returns CounterfactualOutputs."""
+    """A callable class that takes a MaskMarginStorageInterface and returns CounterfactualOutputs, for which a score property must exist."""
 
     def __call__(self, training_output: MaskMarginStorageInterface, n_models: int, split: NDArray[bool]) -> CounterfactualOutputs:
         ...

@@ -4,7 +4,7 @@ from subgroups.datastorage.base import MaskMarginStorageInterface
 from typing import Callable
 from subgroups.datastorage.base import MaskMarginStorageInterface
 from subgroups.datastorage.experiment import Experiment
-from subgroups.counterfactuals.base import SplitFactoryInterface
+from subgroups.splits.base import SplitFactoryInterface
 from numpy.typing import NDArray
 from sklearn.metrics import roc_auc_score, average_precision_score, accuracy_score
 from subgroups.datastorage.counterfactuals import CounterfactualOutputs
@@ -83,7 +83,7 @@ class ReturnCounterfactualOutputsBasic(ReturnCounterfactualOutputInterface):
         acc_on_split_B = self._return_accuracies(labels_split_B, logits_split_B, masks_split_B)
         acc_diff = acc_on_split_A - acc_on_split_B
 
-        return CounterfactualOutputs(acc_on_split_A = acc_on_split_A, acc_on_split_B = acc_on_split_B, acc_diff = acc_diff)
+        return CounterfactualOutputs(acc_on_split_A = acc_on_split_A, acc_on_split_B = acc_on_split_B, score = acc_diff)
       
     
     def _return_split_indices(self, split, labels, split_class):

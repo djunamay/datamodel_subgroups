@@ -5,7 +5,7 @@ from ..datastorage.registry import RandomDataset
 from ..counterfactuals.outputs import ReturnCounterfactualOutputsBasic
 import pytest
 from ..datastorage.registry import random_dataset_experiment
-from ..counterfactuals.base import SplitFactoryInterface
+from ..splits.base import SplitFactoryInterface
 from numpy.typing import NDArray 
 import chz
 

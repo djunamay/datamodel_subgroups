@@ -1,5 +1,5 @@
 from subgroups.datastorage.experiment import Experiment
-from subgroups.counterfactuals.base import SplitFactoryInterface, ReturnCounterfactualOutputInterface
+from subgroups.counterfactuals.base import ReturnCounterfactualOutputInterface
 from subgroups.datasamplers.mask_generators import CounterfactualMaskFactory
 from subgroups.experiments.counterfactuals import CounterfactualArgs, run_counterfactual_for_one_split
 from numpy.typing import NDArray
@@ -14,7 +14,7 @@ def pipeline_cfl(experiment: Experiment, split: NDArray[bool], n_models: int, ba
                     in_memory=in_memory)
     training_output = run_counterfactual_for_one_split(args)
     
-    if in_memory:
+    if in_memory: # TODO: in_memory is already in the maskmarginstorage so dont need in_memory here
         return return_counterfactual_outputs(training_output, split=split)
     else:
         print(f"Train classifier output saved to {training_output}")

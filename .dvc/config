@@ -1,5 +1,6 @@
 [core]
-    remote = raw
+    remote = results
+    autostage = true
 ['remote "results"']
     url = gs://subtypes-results
 ['remote "raw"']

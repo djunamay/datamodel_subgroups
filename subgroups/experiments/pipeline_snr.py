@@ -16,7 +16,7 @@ def pipeline_snr(experiment: Experiment, batch_size: int, batch_starter_seed: in
     
     random_generator = experiment.snr_random_generator(batch_starter_seed=batch_starter_seed)
 
-    args = ComputeSNRArgsMultipleArchitectures(dataset=experiment.dataset, 
+    args = ComputeSNRArgsMultipleArchitectures(dataset=experiment.dataset, # TODO: this is too complicated (bad sign if have such complicated class names); if copy pasting, lots of words, etc something is wrong
                              in_memory=experiment.in_memory, 
                              n_models=experiment.snr_n_models, 
                              n_passes=experiment.snr_n_passes, 
@@ -29,9 +29,9 @@ def pipeline_snr(experiment: Experiment, batch_size: int, batch_starter_seed: in
                              npcs_min=experiment.npcs_min,
                              npcs_max=experiment.npcs_max,
                              feature_selector=experiment.feature_selector,
-                             npcs=experiment.npcs) 
+                             npcs=experiment.npcs) # TODO: this can just take experiment as an input, because this class has same attr as experiment class
     
-    snr_out = compute_snr_for_multiple_architectures(args)
+    snr_out = compute_snr_for_multiple_architectures(args) # TODO this function can just take experiment as argument; this function just calls a function so don't need the whole pipeline_snr function
 
     if experiment.in_memory:
         return snr_out

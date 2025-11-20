@@ -81,3 +81,52 @@ class RandomDataset(DatasetInterface):
     @property
     def num_features(self) -> int:
         return self._features.shape[1]
+
+import numpy as np
+import chz
+from numpy.typing import NDArray
+from sklearn import datasets
+
+@chz.chz
+class SyntheticData(BaseDataset):
+
+    n_samples: int = chz.field(doc = 'number of samples to generate per class', default=500)
+    random_state: int = chz.field(doc = 'random state', default=170)
+    n_features: int = chz.field(doc = 'number of features to sample', default=2)
+    centers_class_1: NDArray[float] = chz.field(doc = 'cluster centers for class 1 of size (n_centers, n_features)')
+    centers_class_0: NDArray[float] = chz.field(doc = 'cluster centers for class 0 of size (n_centers, n_features)')
+
+    @chz.init_property 
+    def _synthetic_data(self):
+        X_class_1, y_class_1 = datasets.make_blobs(n_samples=self.n_samples, random_state=self.random_state, n_features=self.n_features, centers = self.centers_class_1)
+        X_class_0, y_class_0 = datasets.make_blobs(n_samples=self.n_samples, random_state=self.random_state, n_features=self.n_features, centers = self.centers_class_0)
+        features = np.concatenate((X_class_0, X_class_1), axis=0)
+        fine_labels = np.concatenate((y_class_0, y_class_1+1))
+        coarse_labels = np.concatenate((np.zeros_like(y_class_0), np.ones_like(y_class_1)))
+        return features, coarse_labels.astype(bool), fine_labels
+
+    @property 
+    def features(self) -> NDArray[float]:
+        """Feature matrix (shape: [n_samples, n_features])."""
+        return self._synthetic_data[0]
+        
+    
+    @property
+    def coarse_labels(self) -> NDArray[bool]:
+        """Binary labels for classification (shape: [n_samples])."""
+        return self._synthetic_data[1]
+
+    @property
+    def fine_labels(self) -> NDArray[bool]:
+        """Fine-grained labels for clustering (shape: [n_samples])."""
+        return self._synthetic_data[2]
+
+    @property
+    def descriptive_data(self) -> np.recarray:
+        """Descriptive data as a record array (shape: [n_samples, n_descriptive_features])."""
+        return None
+
+    @property 
+    def untransformed_features(self) -> NDArray[float]:
+        """Feature matrix (shape: [n_samples, n_features])."""
+        self._synthetic_data[0]

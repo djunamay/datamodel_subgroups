@@ -68,7 +68,7 @@ class RandomGeneratorTC(RandomGeneratorTCInterface):
         Initial seed for generating all subsequent seeds.
     """
     def __init__(self, batch_starter_seed: int):
-        children = fork_rng(np.random.default_rng(batch_starter_seed), 3)
+        children = fork_rng(np.random.default_rng(batch_starter_seed), 3) # TODO: Don't need separate rngs here; only fork if the sequence in which will run (eg parallelizing) in an unknown order
         self._rngs_build_model_seed = children[0]
         self._rngs_get_mask_seed = children[1]
         self._rngs_train_data_shuffle_seed = children[2]
