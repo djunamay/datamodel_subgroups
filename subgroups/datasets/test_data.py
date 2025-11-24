@@ -5,6 +5,8 @@ from numpy.typing import NDArray
 from typing import Tuple
 from .base import DatasetInterface
 import chz
+from .base import BaseDataset
+
 
 @chz.chz
 class RandomDataset(DatasetInterface):
