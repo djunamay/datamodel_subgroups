@@ -1,23 +1,10 @@
-from ..datastorage.mask_margin import MaskMarginStorage
-from ..datasamplers.mask_generators import fixed_alpha_mask_factory
-from ..datasets.test_data import RandomDataset
-from ..models.classifier import XgbFactory, XgbFactoryInitializer
-from ..datastorage.experiment import Experiment
-from ..experiments.pipeline_tc import pipeline_tc
 from ..experiments.compute_signal_to_noise import _mk_train_args, _mk_snr_args
-from ..experiments.compute_signal_to_noise import run_training_batch
-from ..experiments.pipeline_snr import pipeline_snr
+from ..experiments.train_classifiers import run_training_batch, TrainClassifiersArgs
 from ..experiments.compute_signal_to_noise import ComputeSNRArgsMultipleArchitectures
-from ..datasamplers.mask_generators import fixed_alpha_mask_factory_initializer
-from ..datasamplers.random_generators import RandomGeneratorSNR, RandomGeneratorTC
-from ..experiments.stopping_condition import SNRPrecisionStopping
-import numpy as np
-from ..datastorage.mask_margin import MaskMarginStorage
 from ..datasamplers.mask_generators import fixed_alpha_mask_factory
 from ..datasets.test_data import RandomDataset
 from ..models.classifier import XgbFactory, XgbFactoryInitializer
-from ..datastorage.experiment import Experiment
-from ..experiments.pipeline_tc import pipeline_tc
+from ..datastorage.experiment import SNRExperiment
 from ..experiments.pipeline_snr import pipeline_snr
 from ..datasamplers.mask_generators import fixed_alpha_mask_factory_initializer
 from ..datasamplers.random_generators import RandomGeneratorSNR, RandomGeneratorTC
@@ -38,18 +25,13 @@ def test_fork_rng():
 def test_compute_snr_for_one_architecture():
     random_dataset = RandomDataset()
 
-    experiment = Experiment(dataset=random_dataset,
-        mask_factory=fixed_alpha_mask_factory(alpha=0.1), 
-        model_factory=XgbFactory(), 
-        model_factory_initializer=XgbFactoryInitializer(), 
+    experiment = SNRExperiment(dataset=random_dataset,
+        model_factory_initializer=XgbFactoryInitializer(),
         mask_factory_initializer=fixed_alpha_mask_factory_initializer(),
-        in_memory=True, 
-        snr_n_models=2, 
+        snr_n_models=2,
         snr_n_passes=2,
         snr_random_generator=RandomGeneratorSNR,
-        tc_random_generator=RandomGeneratorTC,
         stopping_condition=SNRPrecisionStopping(tolerance=0.05),
-        npcs=5,
         feature_selector=SelectPCsBasic(),
         npcs_min=2,
         npcs_max=5)
@@ -57,28 +39,34 @@ def test_compute_snr_for_one_architecture():
     batch_size = 10
     random_generator = experiment.snr_random_generator(batch_starter_seed=0)
 
-    args = ComputeSNRArgsMultipleArchitectures(dataset=experiment.dataset, 
-                        in_memory=experiment.in_memory, 
-                        n_models=experiment.snr_n_models, 
+    args = ComputeSNRArgsMultipleArchitectures(dataset=experiment.dataset,
+                        in_memory=True,
+                        n_models=experiment.snr_n_models,
                         n_passes=experiment.snr_n_passes, 
                         random_generator=random_generator,
-                        path_to_results=experiment.path_to_snr_outputs if not experiment.in_memory else None,
+                        path_to_results=experiment.path_to_snr_outputs if not True else None,
                         n_architectures=batch_size,
                         model_factory_initializer=experiment.model_factory_initializer,
                         mask_factory_initializer=experiment.mask_factory_initializer,
                         stopping_condition=experiment.stopping_condition,
                         feature_selector=experiment.feature_selector,
                         npcs_min=experiment.npcs_min,
-                        npcs_max=experiment.npcs_max,
-                        npcs=experiment.npcs) 
+                        npcs_max=experiment.npcs_max)
     
     def make_storage(random_generator: RandomGeneratorSNR, args: ComputeSNRArgsMultipleArchitectures):
         
         new_mask_factory = experiment.mask_factory_initializer.build_mask_factory(random_generator.mask_factory_rng)
         new_model_factory = experiment.model_factory_initializer.build_model_factory(random_generator.model_factory_rng)
 
-        snr_args = _mk_snr_args(args, new_mask_factory, new_model_factory)
-        train_args = _mk_train_args(snr_args)
+        train_args = TrainClassifiersArgs(dataset=experiment.dataset,
+                             mask_factory=new_mask_factory,
+                             model_factory=new_model_factory,
+                             n_models=10,
+                             in_memory=True,
+                             path=None,
+                             random_generator=random_generator,
+                             npcs=3,
+                             feature_selector=experiment.feature_selector)
         return run_training_batch(train_args, batch_starter_seed=None)
 
     storage1 = make_storage(random_generator, args)
@@ -96,20 +84,15 @@ def test_snr_across_seeds():
     """
     random_dataset = RandomDataset()
 
-    exp = Experiment(dataset=random_dataset, 
-           mask_factory=fixed_alpha_mask_factory(alpha=0.1), 
-           model_factory=XgbFactory(), 
+    exp = SNRExperiment(dataset=random_dataset,
            model_factory_initializer=XgbFactoryInitializer(), 
            mask_factory_initializer=fixed_alpha_mask_factory_initializer(),
-           in_memory=True, 
-           snr_n_models=2, 
+           snr_n_models=2,
            snr_n_passes=2,
            snr_random_generator=RandomGeneratorSNR,
-           tc_random_generator=RandomGeneratorTC,
            stopping_condition=SNRPrecisionStopping(tolerance=0.05),
            feature_selector=SelectPCsBasic(),
-           npcs_max=20,
-           npcs=5)
+           npcs_max=20)
 
     snr1 = pipeline_snr(exp, batch_size=2, batch_starter_seed=1)
     snr2 = pipeline_snr(exp, batch_size=2, batch_starter_seed=1)
@@ -132,9 +115,7 @@ def test_consistency_of_snr_computation():
         stopping_condition=SNRPrecisionStopping(),
         n_models=10,
         n_passes=10,
-        in_memory=True,
-        feature_selector=SelectPCsBasic(),
-        npcs=5
+        feature_selector=SelectPCsBasic()
     )
 
     margins, masks, _, _ = snr_inputs_for_one_architecture(args)

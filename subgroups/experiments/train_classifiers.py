@@ -16,7 +16,7 @@ from ..models import ModelFactory
 from ..models.base import SklearnClassifier
 from ..utils.scoring import compute_margins
 from ..datastorage.mask_margin import MaskMarginStorage
-from ..datastorage.base import MaskMarginStorageInterface
+from ..datastorage.mask_margin import MaskMarginStorageInterface
 import chz
 from sklearn.model_selection import train_test_split
 from ..utils.random import fork_rng

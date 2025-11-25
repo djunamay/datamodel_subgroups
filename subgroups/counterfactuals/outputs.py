@@ -1,8 +1,8 @@
 
 from subgroups.counterfactuals.base import ReturnCounterfactualOutputInterface
-from subgroups.datastorage.base import MaskMarginStorageInterface
+from subgroups.datastorage.mask_margin import MaskMarginStorageInterface
 from typing import Callable
-from subgroups.datastorage.base import MaskMarginStorageInterface
+from subgroups.datastorage.mask_margin import MaskMarginStorageInterface
 from subgroups.datastorage.experiment import Experiment
 from subgroups.splits.base import SplitFactoryInterface
 from numpy.typing import NDArray

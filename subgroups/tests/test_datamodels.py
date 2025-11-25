@@ -21,31 +21,22 @@ def test_pipeline_dm():
 
     exp = Experiment(dataset=random_dataset, 
             mask_factory=fixed_alpha_mask_factory(alpha=0.05), 
-            model_factory=XgbFactory(), 
-            model_factory_initializer=XgbFactoryInitializer(), 
-            mask_factory_initializer=fixed_alpha_mask_factory_initializer(),
-            in_memory=False, 
-            snr_n_models=5, 
-            snr_n_passes=3,
-            snr_random_generator=RandomGeneratorSNR,
+            model_factory=XgbFactory(),
             tc_random_generator=RandomGeneratorTC,
-            stopping_condition=SNRPrecisionStopping(tolerance=0.05),
             path = './temp',
             experiment_name = 'test_experiment',
             
-            datamodels_pipeline = DatamodelsPipelineBasic(combined_mask_margin_storage = CombinedMaskMarginStorage(path_to_inputs = './temp/test_experiment/classifier_outputs'),
+            datamodels_pipeline_selection = DatamodelsPipelineBasic(combined_mask_margin_storage = CombinedMaskMarginStorage(path_to_inputs = './temp/test_experiment/classifier_outputs'),
                                                         datamodel_factory = LassoFactory(n_lambdas=10, cv_splits=5),
                                                         path_to_outputs = './temp/test_experiment/datamodel_outputs'),
             indices_to_fit = SequentialIndices(batch_size=5),
-            dm_n_train = 90,
-            dm_n_test = 10,
-            npcs = 5,
+            n_features = 5,
             feature_selector = SelectPCsBasic())
 
     # create temporary training data
     batch_size = 50
-    pipeline_tc(exp, batch_size=batch_size, batch_starter_seed=1, overwrite_config=True)
-    pipeline_tc(exp, batch_size=batch_size, batch_starter_seed=2, overwrite_config=True)
+    pipeline_tc(exp, batch_size=batch_size, batch_starter_seed=1, overwrite_config=True, in_memory=False)
+    pipeline_tc(exp, batch_size=batch_size, batch_starter_seed=2, overwrite_config=True, in_memory=False)
 
     try:
         # check that both runs are recognized and concatenated in the datamodels pipeline

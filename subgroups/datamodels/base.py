@@ -4,7 +4,6 @@ import chz
 from abc import ABC, abstractmethod
 
 
-@chz.chz
 class DatamodelsPipelineInterface(ABC):
     """
     Interface for datamodels pipeline.

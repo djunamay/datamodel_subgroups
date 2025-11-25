@@ -1,6 +1,6 @@
 from .base import DatamodelsPipelineInterface
 from .regressor import DataModelFactory
-from ..datastorage.base import CombinedMaskMarginStorageInterface
+from ..datastorage.combined_mask_margin import CombinedMaskMarginStorageInterface
 import numpy as np
 import os
 import chz
@@ -14,15 +14,18 @@ from sklearn.metrics import root_mean_squared_error
 from ..utils.random import fork_rng
 Array = Union[np.ndarray, np.memmap]
 
-@chz.chz
+
 class DatamodelsPipelineBasic(DatamodelsPipelineInterface):
     """
     A basic implementation of DatamodelsPipelineInterface, which fits a SklearnRegressor to each sample specified in the indices.
     The datamodels are fitted independently of one another.
     """
-    combined_mask_margin_storage: CombinedMaskMarginStorageInterface = chz.field(doc='class containing the masks and margins.')
-    datamodel_factory: DataModelFactory = chz.field(doc='Factory for creating the datamodel.')
-    path_to_outputs: str = chz.field(default=None, doc='Path to save the datamodel outputs.')
+
+    def __init__(self, combined_mask_margin_storage: CombinedMaskMarginStorageInterface,
+                 datamodel_factory: DataModelFactory, path_to_outputs: str):
+        self.combined_mask_margin_storage = combined_mask_margin_storage
+        self.datamodel_factory = datamodel_factory
+        self.path_to_outputs = path_to_outputs
 
     @property
     def _masks(self):

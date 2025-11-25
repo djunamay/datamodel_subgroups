@@ -2,7 +2,21 @@ import chz
 from functools import cached_property
 import os, glob, hashlib
 import numpy as np
-from .base import CombinedMaskMarginStorageInterface
+from abc import abstractmethod, ABC
+from numpy.typing import NDArray
+from typing import Union
+import numpy as np
+Array = Union[np.ndarray, np.memmap]
+
+class CombinedMaskMarginStorageInterface(ABC):
+
+    @property
+    def masks(self) -> Array:
+        ...
+
+    @property
+    def margins(self) -> Array:
+        ...
 
 @chz.chz
 class CombinedMaskMarginStorage(CombinedMaskMarginStorageInterface):

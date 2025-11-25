@@ -5,7 +5,7 @@ from numpy.typing import NDArray
 from dataclasses import dataclass, field
 from typing import Tuple, Iterator, Union, Any
 from ..datastorage.experiment import Experiment
-from ..datastorage.base import MaskMarginStorageInterface
+from ..datastorage.mask_margin import MaskMarginStorageInterface
 from ..datastorage.counterfactuals import CounterfactualOutputs
 
 

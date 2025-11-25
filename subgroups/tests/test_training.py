@@ -20,16 +20,9 @@ def test_tc_pipeline_across_seeds():
 
     exp = Experiment(dataset=random_dataset, 
             mask_factory=fixed_alpha_mask_factory(alpha=0.1), 
-            model_factory=XgbFactory(), 
-            model_factory_initializer=XgbFactoryInitializer(), 
-            mask_factory_initializer=fixed_alpha_mask_factory_initializer(),
-            in_memory=True, 
-            snr_n_models=5, 
-            snr_n_passes=3,
-            snr_random_generator=RandomGeneratorSNR,
+            model_factory=XgbFactory(),
             tc_random_generator=RandomGeneratorTC,
-            stopping_condition=SNRPrecisionStopping(tolerance=0.05),
-            npcs=5,
+            n_features=5,
             feature_selector=SelectPCsBasic())
 
     run1 = pipeline_tc(exp, batch_size=3, batch_starter_seed=1)
