@@ -10,7 +10,7 @@ def pipeline_tc(experiment: Experiment, batch_size: int, batch_starter_seed: int
     """
     Run a batch of training experiments for a given batch size and starter seed.
     The starter seed ensures that each model, each mask, and each training data shuffle are built from independent random seeds within and across each run.
-    See `RandomGeneratorTCInterface` for more details.
+    See `RandomGeneratorTC` for more details.
     """
     if not in_memory:
         path_to_config = os.path.join(experiment.path_to_results, "experiment_config.json")

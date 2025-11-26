@@ -77,7 +77,7 @@ class DatamodelsPipelineBasic(DatamodelsPipelineInterface):
     def _get_samples_for_model(masks, margins, sample_index: int):
         """
         Get the samples for the model.
-        For a given sample, exclude any models for fitting in which that sample was included in the training set.
+        For a given sample, exclude any classifiers for fitting in which that sample was included in the training set.
         """
         mask = masks[:,sample_index]
         index = ~mask

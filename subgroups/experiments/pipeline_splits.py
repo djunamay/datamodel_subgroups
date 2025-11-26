@@ -43,7 +43,7 @@ def pipeline_split(experiment: Experiment,
     K : NDArray[float]
             Array of parameters of values used by SplitFactoryInterface to generate splits.
     n_models : int
-            Number of models to perform counterfactual experiments on.
+            Number of classifiers to perform counterfactual experiments on.
     in_memory : bool
             If True, run computation without writing intermediate results to disk.
 

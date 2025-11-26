@@ -4,6 +4,8 @@ import chz
 import os
 from pathlib import Path
 import numpy as np
+import functools
+
 def load_experiment_from_json(file_path: str) -> dict:
     """
     Load experiment configuration from a JSON file.
@@ -40,6 +42,17 @@ def write_chz_class_to_json(obj, file_path: str | os.PathLike, *, indent: int = 
         # 2️ small 1-D/2-D ndarrays (optional – remove if huge)
         if isinstance(o, np.ndarray):
             return o.tolist()
+
+        if isinstance(o, functools.partial):
+            # minimal encoding: just record the underlying function
+            return {
+                "__type__": "partial",
+                "func_module": o.func.__module__,
+                "func_qualname": o.func.__qualname__,
+                "args": o.args,
+                "keywords": o.keywords or {},
+            }
+
 
         # 3️ class objects or callables
         if isinstance(o, type) or callable(o):

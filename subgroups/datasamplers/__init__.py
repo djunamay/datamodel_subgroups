@@ -1,3 +1,4 @@
-from .base import MaskFactory, MaskFactoryInitializer
-from .mask_generators import fixed_alpha_mask_factory, fixed_alpha_mask_factory_initializer
-__all__ = ['MaskFactory', 'MaskFactoryInitializer', 'fixed_alpha_mask_factory', 'fixed_alpha_mask_factory_initializer']
+from .mask_generators import mask_factory_fixed_alpha, mask_factory_init_fixed_alpha, mask_factory_fn, \
+    mask_factory_init_fn
+
+__all__ = ['mask_factory_fn', 'mask_factory_init_fn', 'mask_factory_fixed_alpha', 'mask_factory_init_fixed_alpha']

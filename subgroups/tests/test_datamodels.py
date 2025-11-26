@@ -1,11 +1,8 @@
 from ..datasets.test_data import RandomDataset
-from ..datasamplers.mask_generators import fixed_alpha_mask_factory
-from ..datasamplers.random_generators import RandomGeneratorSNR, RandomGeneratorTC
-from ..models.classifier import XgbFactory, XgbFactoryInitializer
-from ..datasamplers.mask_generators import fixed_alpha_mask_factory_initializer
-from ..experiments.stopping_condition import SNRPrecisionStopping
+from ..datasamplers.mask_generators import mask_factory_fixed_alpha
+from ..datasamplers.random_generators import RandomGeneratorTC
+from ..classifiers.xgboost import model_factory_xgboost
 from ..experiments.pipeline_tc import pipeline_tc
-from ..experiments.pipeline_dm import pipeline_dm
 from ..datastorage.experiment import Experiment
 from ..datamodels.datamodels_pipeline import DatamodelsPipelineBasic
 from ..datamodels.regressor import LassoFactory
@@ -14,24 +11,26 @@ import shutil
 import numpy as np
 import os
 from ..datastorage.combined_mask_margin import CombinedMaskMarginStorage
-from ..datasamplers.feature_selectors import SelectPCsBasic
+from ..datasamplers.feature_selectors import select_features_basic
+from functools import partial
+
 def test_pipeline_dm():
 
     random_dataset = RandomDataset()
 
-    exp = Experiment(dataset=random_dataset, 
-            mask_factory=fixed_alpha_mask_factory(alpha=0.05), 
-            model_factory=XgbFactory(),
-            tc_random_generator=RandomGeneratorTC,
-            path = './temp',
-            experiment_name = 'test_experiment',
-            
-            datamodels_pipeline_selection = DatamodelsPipelineBasic(combined_mask_margin_storage = CombinedMaskMarginStorage(path_to_inputs = './temp/test_experiment/classifier_outputs'),
+    exp = Experiment(dataset=random_dataset,
+                     mask_factory=partial(mask_factory_fixed_alpha, alpha=0.05),
+                     model_factory=model_factory_xgboost,
+                     tc_random_generator=RandomGeneratorTC,
+                     path = './temp',
+                     experiment_name = 'test_experiment',
+
+                     datamodels_pipeline_selection = DatamodelsPipelineBasic(combined_mask_margin_storage = CombinedMaskMarginStorage(path_to_inputs = './temp/test_experiment/classifier_outputs'),
                                                         datamodel_factory = LassoFactory(n_lambdas=10, cv_splits=5),
                                                         path_to_outputs = './temp/test_experiment/datamodel_outputs'),
-            indices_to_fit = SequentialIndices(batch_size=5),
-            n_features = 5,
-            feature_selector = SelectPCsBasic())
+                     indices_to_fit = SequentialIndices(batch_size=5),
+                     n_features = 5,
+                     feature_selector = select_features_basic)
 
     # create temporary training data
     batch_size = 50

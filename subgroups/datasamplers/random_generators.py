@@ -1,12 +1,8 @@
-import chz
-from abc import ABC, abstractmethod
-from numpy.random import Generator
 import numpy as np
-from .base import RandomGeneratorSNRInterface, RandomGeneratorTCInterface
 from functools import cached_property
 from ..utils.random import fork_rng
 
-class RandomGeneratorSNR(RandomGeneratorSNRInterface):
+class RandomGeneratorSNR:
     """
     Generates independent random seeds for various components of the SNR experiment using a batch starter seed.
 
@@ -57,7 +53,7 @@ class RandomGeneratorSNR(RandomGeneratorSNRInterface):
         return self._rngs_n_pcs_seed
 
 
-class RandomGeneratorTC(RandomGeneratorTCInterface):
+class RandomGeneratorTC:
     """
     Generates random seeds for various components of TC experiments using a batch starter seed.
     All seeds are newly generated at each call.

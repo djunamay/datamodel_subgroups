@@ -1,16 +1,16 @@
 
 from ..experiments.train_classifiers import TrainClassifiersArgs, run_training_batch
-from ..datasamplers.base import MaskFactory
+from ..datasamplers import mask_factory_fn
 from ..datastorage.experiment import Experiment
 
 import chz 
 
 @chz.chz
 class CounterfactualArgs:
-    experiment: Experiment = chz.field(default=None, doc='Factory for generating masks. This will be used for training the classifier.')
-    nmodels: int = chz.field(default=None, doc='Number of models to build from ModelFactory per counterfactual experiment. Each model will be trained on a different mask from MaskFactory.')
+    experiment: Experiment = chz.field(default=None, doc='Factory for generating masks. This will be used for training the classifiers.')
+    nmodels: int = chz.field(default=None, doc='Number of classifiers to build from ModelFactory per counterfactual experiment. Each model will be trained on a different mask from MaskFactory.')
     batch_starter_seed: int
-    CounterFactualMaskFactory: MaskFactory
+    CounterFactualMaskFactory: mask_factory_fn
     in_memory: bool
     
 def run_counterfactual_for_one_split(CounterfactualArgs):
@@ -32,4 +32,4 @@ def run_counterfactual_for_one_split(CounterfactualArgs):
     if CounterfactualArgs.in_memory:
         return train_out
     else:
-        print(f"Train classifier output saved to {train_out}")
+        print(f"Train classifiers output saved to {train_out}")

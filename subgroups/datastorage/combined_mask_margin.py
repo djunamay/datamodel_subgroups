@@ -1,9 +1,7 @@
 import chz
 from functools import cached_property
 import os, glob, hashlib
-import numpy as np
-from abc import abstractmethod, ABC
-from numpy.typing import NDArray
+from abc import ABC
 from typing import Union
 import numpy as np
 Array = Union[np.ndarray, np.memmap]
@@ -24,7 +22,7 @@ class CombinedMaskMarginStorage(CombinedMaskMarginStorageInterface):
     A basic implementation of DatamodelsPipelineInterface, which fits a SklearnRegressor to each sample specified in the indices.
     The datamodels are fitted independently of one another.
     """
-    path_to_inputs: str = chz.field(doc='Path to classifier outputs containing the masks and margins.')
+    path_to_inputs: str = chz.field(doc='Path to classifiers outputs containing the masks and margins.')
 
     @staticmethod
     def _find_files(directory, search_pattern):

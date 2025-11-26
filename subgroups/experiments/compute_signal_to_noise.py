@@ -11,17 +11,15 @@ from tqdm import tqdm
 import chz
 
 from ..datasets          import DatasetInterface
-from ..datasamplers      import MaskFactory, MaskFactoryInitializer
-from ..datasamplers.base import RandomGeneratorSNRInterface
+from ..datasamplers      import mask_factory_fn, mask_factory_init_fn
 from ..datasamplers.random_generators import RandomGeneratorSNR
-from ..models            import ModelFactory
-from ..models            import ModelFactoryInitializer   
+from ..classifiers import model_factory_fn, model_factory_init_fn
 from ..utils.scoring     import compute_signal_noise
 from ..utils.configs     import write_chz_class_to_json, append_float_ndjson
 from .train_classifiers  import TrainClassifiersArgs, run_training_batch
 from .stopping_condition import StoppingConditionInterface
 from ..experiments.train_classifiers import fit_single_classifier, _make_storage
-from ..datasamplers.feature_selectors import SelectPCsInterface
+from ..datasamplers.feature_selectors import select_features_fn
 
 @chz.chz
 class ComputeSNRArgs:
@@ -33,11 +31,11 @@ class ComputeSNRArgs:
     ----------
     dataset : DatasetInterface
         Provides the feature matrix and labels.
-    mask_factory : MaskFactory
+    mask_factory : subgroups.datasamplers.mask_factory_fn
         Creates a boolean training-mask for each split, using the method specified in the `MaskFactory`.
-    model_factory : ModelFactory
-        Builds fresh classifier instances, using the model architecture specified in the `ModelFactory`.
-    random_generator : RandomGeneratorSNRInterface
+    model_factory : model_factory_fn
+        Builds fresh classifiers instances, using the model architecture specified in the `ModelFactory`.
+    random_generator : RandomGeneratorSNR
         Supplies all reproducibility seeds (mask, model, shuffle, …).  
         See the *RandomGenerator* docstring for the exact per-seed policy.
     n_models : int
@@ -50,9 +48,9 @@ class ComputeSNRArgs:
         and the function returns the output path instead.
     """
     dataset: DatasetInterface
-    mask_factory: MaskFactory
-    model_factory: ModelFactory
-    random_generator: RandomGeneratorSNRInterface
+    mask_factory: mask_factory_fn
+    model_factory: model_factory_fn
+    random_generator: RandomGeneratorSNR
     stopping_condition: StoppingConditionInterface
     npcs_min: int = 5
     npcs_max: int = 50
@@ -60,7 +58,7 @@ class ComputeSNRArgs:
     n_models: int  = 20           # train-split count
     n_passes: int  = 15           # model re-initialisations per split
     in_memory: bool = True
-    feature_selector: SelectPCsInterface
+    feature_selector: select_features_fn
 
 @chz.chz
 class ComputeSNRArgsMultipleArchitectures:
@@ -72,11 +70,11 @@ class ComputeSNRArgsMultipleArchitectures:
     ----------
     dataset : DatasetInterface
         Provides the feature matrix and labels.
-    mask_factory_initializer : MaskFactoryInitializer
+    mask_factory_initializer : mask_factory_init_fn
         Initializes a new `MaskFactory` object, sampling from methods specified in the `MaskFactoryInitializer`.
-    model_factory_initializer : ModelFactoryInitializer
+    model_factory_initializer : model_factory_init_fn
         Initializes a new `ModelFactory` object, sampling from parameters specified in the `ModelFactoryInitializer`.
-    random_generator : RandomGeneratorSNRInterface
+    random_generator : RandomGeneratorSNR
         Supplies all reproducibility seeds (mask, model, shuffle, …).  
         See the *RandomGenerator* docstring for the exact per-seed policy.
     n_models : int
@@ -89,9 +87,9 @@ class ComputeSNRArgsMultipleArchitectures:
         and the function returns the output path instead.
     """
     dataset: DatasetInterface
-    model_factory_initializer: ModelFactoryInitializer
-    mask_factory_initializer: MaskFactoryInitializer
-    random_generator: Type[RandomGeneratorSNRInterface]
+    model_factory_initializer: model_factory_init_fn
+    mask_factory_initializer: mask_factory_init_fn
+    random_generator: Type[RandomGeneratorSNR]
     stopping_condition: StoppingConditionInterface
 
     n_models: int
@@ -103,7 +101,7 @@ class ComputeSNRArgsMultipleArchitectures:
     n_architectures: int
     path_to_results: str
 
-    feature_selector: SelectPCsInterface
+    feature_selector: select_features_fn
 
 
 def _mk_train_args(cfg: ComputeSNRArgs) -> TrainClassifiersArgs:
@@ -126,7 +124,7 @@ def _mk_snr_out(args: ComputeSNRArgsMultipleArchitectures) -> np.ndarray:
         snr_out = np.lib.format.open_memmap(out_path, dtype=np.float32, mode="w+", shape=(args.n_architectures, args.dataset.num_samples))
     return snr_out
 
-def _mk_snr_args(args: ComputeSNRArgsMultipleArchitectures, mask_factory: MaskFactory, model_factory: ModelFactory) -> ComputeSNRArgs:
+def _mk_snr_args(args: ComputeSNRArgsMultipleArchitectures, mask_factory: mask_factory_fn, model_factory: model_factory_fn) -> ComputeSNRArgs:
     return ComputeSNRArgs(dataset=args.dataset, 
                          mask_factory=mask_factory,
                          model_factory=model_factory,
@@ -171,7 +169,7 @@ def snr_inputs_for_one_architecture(args: ComputeSNRArgs) -> tuple[np.ndarray, f
     train_args = _mk_train_args(args)
     storage = _make_storage(train_args, args.dataset, args.random_generator.batch_starter_seed)
     n_pcs = args.random_generator._rngs_n_pcs_seed.integers(args.npcs_min, args.npcs_max)
-    feature_indices = args.feature_selector.feature_indices(n_pcs=n_pcs)
+    feature_indices = args.feature_selector(n_pcs)
 
     for bin in bins:
 
@@ -181,7 +179,7 @@ def snr_inputs_for_one_architecture(args: ComputeSNRArgs) -> tuple[np.ndarray, f
 
                 for i in np.arange(start, stop):
                     mask = storage.masks[i]
-                    clf   = args.model_factory.build_model(rng=args.random_generator.model_build_rng)
+                    clf   = args.model_factory(rng=args.random_generator.model_build_rng)
                     margins_temp, acc = fit_single_classifier(args.dataset.features[:, feature_indices], args.dataset.coarse_labels, mask, clf, args.random_generator.train_data_shuffle_rng)
                     storage.fill_results(i, margins_temp, acc)
 
@@ -219,8 +217,8 @@ def compute_snr_for_multiple_architectures(args: ComputeSNRArgsMultipleArchitect
 
     for i in range(n_architectures):
         print(f"Computing signal-to-noise ratio for architecture {i}", end="\n" + "-"*len(f"Computing signal-to-noise ratio for architecture {i}") + "\n")
-        new_mask_factory = args.mask_factory_initializer.build_mask_factory(args.random_generator.mask_factory_rng)
-        new_model_factory = args.model_factory_initializer.build_model_factory(args.random_generator.model_factory_rng)
+        new_mask_factory = args.mask_factory_initializer(args.random_generator.mask_factory_rng)
+        new_model_factory = args.model_factory_initializer(args.random_generator.model_factory_rng)
         margins, masks, test_accuracy, n_pcs = snr_inputs_for_one_architecture(_mk_snr_args(args, new_mask_factory, new_model_factory))
         snr = compute_signal_noise(margins, masks)
         snr_out[i] = snr

@@ -12,7 +12,7 @@ class SklearnRegressorCV(SklearnRegressor, LinearModelCV):
 @chz.chz
 class LassoFactory(DataModelFactory):
     """
-    A factory for creating LassoCV models.
+    A factory for creating LassoCV classifiers.
 
     Parameters
     ----------
@@ -33,7 +33,7 @@ class LassoFactory(DataModelFactory):
 @chz.chz
 class LinearRegressionFactory(DataModelFactory):
     """
-    A factory for creating unregularized LinearRegression models.
+    A factory for creating unregularized LinearRegression classifiers.
     """
 
     def build_model(self, seed: int = None) -> SklearnRegressor:

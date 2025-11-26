@@ -70,7 +70,7 @@ class ReturnCounterfactualOutputsBasic(ReturnCounterfactualOutputInterface):
             raise ValueError('Split_A and Split_B should index the same class.')
 
         if len(np.unique(training_output.masks[:,split_A]))==1:
-            raise ValueError('Split_A was not used to train any models.')
+            raise ValueError('Split_A was not used to train any classifiers.')
 
         if True in np.unique(training_output.masks[:,split_B]):
             raise ValueError('Split_B was used to train on. Only Split_A should be used for training.')

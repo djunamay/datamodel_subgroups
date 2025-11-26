@@ -1,5 +1,5 @@
 
-from ..datasamplers.mask_generators import CounterfactualMaskFactory
+from ..datasamplers.mask_generators import mask_factory_counterfactuals
 import numpy as np
 from ..datastorage.registry import RandomDataset
 from ..counterfactuals.outputs import ReturnCounterfactualOutputsBasic
@@ -8,6 +8,7 @@ from ..datastorage.registry import random_dataset_experiment
 from ..splits.base import SplitFactoryInterface
 from numpy.typing import NDArray 
 import chz
+from functools import partial
 
 class _DummyStorage:
     """Mimics MaskMarginStorageInterface: holds margins, masks, labels."""
@@ -25,15 +26,15 @@ def test_CounterfactualMaskFactory():
     labels = randomdata.coarse_labels
     split = np.zeros(len(labels), dtype=bool)
     split[np.random.permutation(labels)] = np.random.randint(0, 2, np.sum(labels))
-    counterfactual = CounterfactualMaskFactory(split=split, alpha=0.05)
+    counterfactual =partial(mask_factory_counterfactuals, split=split, alpha=0.05)
 
     with pytest.raises(ValueError, match="Bool split vector must index samples from one class only."):
-        counterfactual.get_masks(labels, np.random.default_rng(2))
+        counterfactual(labels, np.random.default_rng(2))
 
     split = np.zeros(len(labels), dtype=bool)
     split[(labels)] = np.random.randint(0, 2, np.sum(labels))
-    counterfactual = CounterfactualMaskFactory(split=split, alpha=0.05)
-    assert len(counterfactual.get_masks(labels, np.random.default_rng(2))) == len(labels)
+    counterfactual = partial(mask_factory_counterfactuals,split=split, alpha=0.05)
+    assert len(counterfactual(labels, np.random.default_rng(2))) == len(labels)
 
 
 def test_ReturnCounterfactualOutputsBasic_return_accuracies():
@@ -66,7 +67,7 @@ def test_ReturnCounterfactualOutputsBasic_Happy():
     # split indexes a subset of class 1 only
     split = np.array([0,1,1,1, 0,0,0,0], dtype=bool)
 
-    # Masks: Split A must have at least some True (used in training) for ALL models;
+    # Masks: Split A must have at least some True (used in training) for ALL classifiers;
     # Split B must have NO True anywhere.
     # We'll set: model0 saw two split_A samples, model1 saw one split_A; none saw split_B.
     masks = np.zeros((2, labels.size), dtype=bool)
@@ -92,7 +93,7 @@ def test_ReturnCounterfactualOutputsBasic_Error_1():
     # split indexes a subset of class 1 only
     split = np.array([1,0,1,1, 0,0,0,0], dtype=bool)
 
-    # Masks: Split A must have at least some True (used in training) for ALL models;
+    # Masks: Split A must have at least some True (used in training) for ALL classifiers;
     # Split B must have NO True anywhere.
     # We'll set: model0 saw two split_A samples, model1 saw one split_A; none saw split_B.
     masks = np.zeros((2, labels.size), dtype=bool)
@@ -119,7 +120,7 @@ def test_ReturnCounterfactualOutputsBasic_Error_3():
     # split indexes a subset of class 1 only
     split = np.array([0,1,1,1, 0,0,0,0], dtype=bool)
 
-    # Masks: Split A must have at least some True (used in training) for ALL models;
+    # Masks: Split A must have at least some True (used in training) for ALL classifiers;
     # Split B must have NO True anywhere.
     # We'll set: model0 saw two split_A samples, model1 saw one split_A; none saw split_B.
     masks = np.zeros((2, labels.size), dtype=bool)
@@ -134,7 +135,7 @@ def test_ReturnCounterfactualOutputsBasic_Error_3():
 
     storage = _DummyStorage(margins=margins, masks=masks, labels=labels)
 
-    with pytest.raises(ValueError, match='Split_A was not used to train any models.'):
+    with pytest.raises(ValueError, match='Split_A was not used to train any classifiers.'):
         func(storage, split)
 
 
@@ -148,7 +149,7 @@ def test_ReturnCounterfactualOutputsBasic_Error_4():
     # split indexes a subset of class 1 only
     split = np.array([0,1,1,1, 0,0,0,0], dtype=bool)
 
-    # Masks: Split A must have at least some True (used in training) for ALL models;
+    # Masks: Split A must have at least some True (used in training) for ALL classifiers;
     # Split B must have NO True anywhere.
     # We'll set: model0 saw two split_A samples, model1 saw one split_A; none saw split_B.
     masks = np.zeros((2, labels.size), dtype=bool)
@@ -221,8 +222,8 @@ def test_equal_train_numbers_per_split():
 
     for k in np.arange(150,500,100):
         split = splitter.split(k)
-        counterfactual_mask_factory = CounterfactualMaskFactory(split=split, alpha=experiment.mask_factory.alpha)
-        masks = counterfactual_mask_factory.get_masks(experiment.dataset.coarse_labels, experiment.tc_random_generator(10).train_data_shuffle_rng)
+        counterfactual_mask_factory = partial(mask_factory_counterfactuals, split=split, alpha=0.01)
+        masks = counterfactual_mask_factory(experiment.dataset.coarse_labels, experiment.tc_random_generator(10).train_data_shuffle_rng)
 
         assert experiment.dataset.coarse_labels[masks].sum()/masks.sum() == 0.5
-        assert masks.sum() == experiment.mask_factory.alpha*len(r)
+        assert masks.sum() == 0.01*len(r)

@@ -1,7 +1,8 @@
-from ..datasamplers.mask_generators import fixed_alpha_mask_factory, CounterfactualMaskFactory
+from ..datasamplers.mask_generators import mask_factory_fixed_alpha,mask_factory_counterfactuals
 from ..datasets.test_data import RandomDataset
 import numpy as np
 import pytest
+from functools import partial
 
 def test_fixed_alpha_mask_factory():
     """
@@ -26,7 +27,7 @@ def test_fixed_alpha_mask_factory():
     random_dataset = RandomDataset()
     labels = random_dataset.coarse_labels
     expected = expected_true_count(alpha, labels)
-    mask = fixed_alpha_mask_factory(alpha=alpha).get_masks(labels, np.random.default_rng(0))
+    mask = partial(mask_factory_fixed_alpha, alpha=alpha)(labels, np.random.default_rng(0))
     assert mask.sum() == expected
 
 def test_CounterfactualMaskFactory():
@@ -37,12 +38,12 @@ def test_CounterfactualMaskFactory():
     labels = randomdata.coarse_labels
     split = np.zeros(len(labels), dtype=bool)
     split[np.random.permutation(labels)] = np.random.randint(0, 2, np.sum(labels))
-    counterfactual = CounterfactualMaskFactory(split=split, alpha=np.random.uniform(0, 0.5))
+    counterfactual = partial(mask_factory_counterfactuals, split=split, alpha=np.random.uniform(0, 0.2))
 
     with pytest.raises(ValueError, match="Bool split vector must index samples from one class only."):
-        counterfactual.get_masks(labels, np.random.default_rng(2))
+        counterfactual(labels, np.random.default_rng(2))
 
     split = np.zeros(len(labels), dtype=bool)
     split[labels] = np.random.randint(0, 2, np.sum(labels))
-    counterfactual = CounterfactualMaskFactory(split=split, alpha=np.random.uniform(0, 0.5))
-    assert len(counterfactual.get_masks(labels, np.random.default_rng(2))) == len(labels)
+    counterfactual = partial(mask_factory_counterfactuals, split=split, alpha=np.random.uniform(0, 0.2))
+    assert len(counterfactual(labels, np.random.default_rng(2))) == len(labels)
