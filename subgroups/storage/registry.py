@@ -1,19 +1,19 @@
-from ..datasets.registry import gtex, gtex_subset, ace_csf_proteomics, ace_plasma_proteomics, rosmap_singlecell, ace_plasma_csf_proteomics, gtex_subset_home
+from ..datasets.registry import gtex_subset, rosmap_singlecell, ace_plasma_csf_proteomics, gtex_subset_home
 from ..datasets.test_data import RandomDataset
-from ..datasamplers.mask_generators import mask_factory_fixed_alpha
-from ..classifiers.xgboost import model_factory_xgboost
-from ..classifiers.xgboost import model_factory_init_xgboost
-from ..datasamplers.mask_generators import mask_factory_init_fixed_alpha
+from ..samplers.mask_generators import mask_factory_fixed_alpha
+from ..models.xgboost import model_factory_xgboost
+from ..models.xgboost import model_factory_init_xgboost
+from ..samplers.mask_generators import mask_factory_init_fixed_alpha
 from .experiment import Experiment
-from ..datasamplers.random_generators import RandomGeneratorSNR, RandomGeneratorTC
-from ..experiments.stopping_condition import SNRPrecisionStopping
+from ..samplers.random_generators import RandomGeneratorSNR, RandomGeneratorTC
+from ..pipelines.stopping_condition import SNRPrecisionStopping
 from ..datamodels.datamodels_pipeline import DatamodelsPipelineBasic
-from ..datamodels.regressor import LassoFactory, LinearRegressionFactory
+from subgroups.models.regressor import datamodel_factory_linear
 from ..datamodels.indices import SequentialIndices
 import os
 from functools import partial
 from .combined_mask_margin import CombinedMaskMarginStorage
-from ..datasamplers.feature_selectors import select_features_basic, select_features_singlecell
+from ..samplers.feature_selectors import select_features_basic, select_features_singlecell
 
 
 def gtex_subset_experiment_home() -> Experiment:
@@ -42,7 +42,7 @@ def gtex_subset_experiment_home() -> Experiment:
         npcs_max=500,
         npcs=20,
         feature_selector=select_features_basic(),
-        datamodels_pipeline=DatamodelsPipelineBasic(datamodel_factory=LinearRegressionFactory(),
+        datamodels_pipeline=DatamodelsPipelineBasic(datamodel_factory=datamodel_factory_linear(),
                                                     combined_mask_margin_storage=CombinedMaskMarginStorage(path_to_inputs=os.path.join(path, name, "classifier_outputs")),
                                                     path_to_outputs=os.path.join(path, name, "datamodel_outputs")),
     )
@@ -80,7 +80,7 @@ def gtex_subset_experiment() -> Experiment:
         feature_selector=select_features_basic(),
         #counterfactual_inputs=CounterfactualInputsBasic,
         #counterfactual_estimator=CounterfactualEvaluation,
-        datamodels_pipeline=DatamodelsPipelineBasic(datamodel_factory=LinearRegressionFactory(),
+        datamodels_pipeline=DatamodelsPipelineBasic(datamodel_factory=datamodel_factory_linear(),
                                                     combined_mask_margin_storage=CombinedMaskMarginStorage(path_to_inputs=os.path.join(path, name, "classifier_outputs")),
                                                     path_to_outputs=os.path.join(path, name, "datamodel_outputs")),
     )
@@ -198,7 +198,7 @@ def ace_plasma_csf_proteomics_amnestic_experiment() -> Experiment: # TODO: The o
         feature_selector=select_features_basic(),
         #counterfactual_inputs=CounterfactualInputsSingleCell,
         #counterfactual_estimator=CounterfactualEvaluation,
-        datamodels_pipeline=DatamodelsPipelineBasic(datamodel_factory=LinearRegressionFactory(),
+        datamodels_pipeline=DatamodelsPipelineBasic(datamodel_factory=datamodel_factory_linear(),
                                                     combined_mask_margin_storage=CombinedMaskMarginStorage(path_to_inputs=os.path.join(path, name, "classifier_outputs")),
                                                     path_to_outputs=os.path.join(path, name, "datamodel_outputs")),
         notes="This experiment was performed after implementing additional filtering of the data to remove features that were not human or that had failed the column check, as well as MAPT or APP."
@@ -277,7 +277,7 @@ def rosmap_singlecell_experiment() -> Experiment: # TODO: The overwrite config d
         counterfactual_test_fraction=0.1,
         #counterfactual_inputs=CounterfactualInputsBasic,
         #counterfactual_estimator=CounterfactualEvaluation,
-        datamodels_pipeline=DatamodelsPipelineBasic(datamodel_factory=LinearRegressionFactory(),
+        datamodels_pipeline=DatamodelsPipelineBasic(datamodel_factory=datamodel_factory_linear(),
                                                     combined_mask_margin_storage=CombinedMaskMarginStorage(path_to_inputs=os.path.join(path, name, "classifier_outputs")),
                                                     path_to_outputs=os.path.join(path, name, "datamodel_outputs")),
     )
@@ -308,7 +308,7 @@ def rosmap_singlecell_experiment_point_1() -> Experiment: # TODO: The overwrite 
         npcs_max=50,
         npcs=40,
         feature_selector=select_features_singlecell(),
-        datamodels_pipeline=DatamodelsPipelineBasic(datamodel_factory=LinearRegressionFactory(),
+        datamodels_pipeline=DatamodelsPipelineBasic(datamodel_factory=datamodel_factory_linear(),
                                                     combined_mask_margin_storage=CombinedMaskMarginStorage(path_to_inputs=os.path.join(path, name, "classifier_outputs")),
                                                     path_to_outputs=os.path.join(path, name, "datamodel_outputs")),
     )
@@ -346,7 +346,7 @@ def rosmap_singlecell_experiment_point_3() -> Experiment: # TODO: The overwrite 
         feature_selector=select_features_singlecell(),
         #counterfactual_inputs=CounterfactualInputsSingleCell,
         #counterfactual_estimator=CounterfactualEvaluation,
-        datamodels_pipeline=DatamodelsPipelineBasic(datamodel_factory=LinearRegressionFactory(),
+        datamodels_pipeline=DatamodelsPipelineBasic(datamodel_factory=datamodel_factory_linear(),
                                                     combined_mask_margin_storage=CombinedMaskMarginStorage(path_to_inputs=os.path.join(path, name, "classifier_outputs")),
                                                     path_to_outputs=os.path.join(path, name, "datamodel_outputs")),
     )

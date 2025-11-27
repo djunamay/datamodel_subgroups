@@ -1,4 +1,4 @@
-from ..datasamplers.mask_generators import mask_factory_fixed_alpha,mask_factory_counterfactuals
+from ..samplers.mask_generators import mask_factory_fixed_alpha,mask_factory_counterfactuals
 from ..datasets.test_data import RandomDataset
 import numpy as np
 import pytest

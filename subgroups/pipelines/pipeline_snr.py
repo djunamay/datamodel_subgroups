@@ -1,4 +1,4 @@
-from ..datastorage.experiment import SNRExperiment
+from ..storage.experiment import SNRExperiment
 from .compute_signal_to_noise import ComputeSNRArgsMultipleArchitectures, compute_snr_for_multiple_architectures
 import os
 import chz

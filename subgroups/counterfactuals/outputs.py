@@ -1,13 +1,13 @@
 
 from subgroups.counterfactuals.base import ReturnCounterfactualOutputInterface
-from subgroups.datastorage.mask_margin import MaskMarginStorageInterface
+from subgroups.storage.training import BaseStorage
 from typing import Callable
-from subgroups.datastorage.mask_margin import MaskMarginStorageInterface
-from subgroups.datastorage.experiment import Experiment
+from subgroups.storage.training import BaseStorage
+from subgroups.storage.experiment import Experiment
 from subgroups.splits.base import SplitFactoryInterface
 from numpy.typing import NDArray
 from sklearn.metrics import roc_auc_score, average_precision_score, accuracy_score
-from subgroups.datastorage.counterfactuals import CounterfactualOutputs
+from subgroups.storage.counterfactuals import CounterfactualOutputs
 import numpy as np
 from numpy.typing import NDArray
 from typing import Optional
@@ -34,14 +34,14 @@ class ReturnCounterfactualOutputsBasic(ReturnCounterfactualOutputInterface):
         """
         self.eligible_split_samples = eligible_split_samples
 
-    def __call__(self, training_output: MaskMarginStorageInterface, split: NDArray[bool]) -> CounterfactualOutputs:
+    def __call__(self, training_output: BaseStorage, split: NDArray[bool]) -> CounterfactualOutputs:
         """
         Returns class CounterfactualOutputs based on input training data.
 
         Parameters
         ----------
 
-        training_output : MaskMarginStorageInterface 
+        training_output : BaseStorage 
             Model training outputs for training regime where for split_class only samples in split were fair game (for the opposite class all samples were fair game)
                     
         split : NDArray of bool, shape (n_samples)
@@ -70,7 +70,7 @@ class ReturnCounterfactualOutputsBasic(ReturnCounterfactualOutputInterface):
             raise ValueError('Split_A and Split_B should index the same class.')
 
         if len(np.unique(training_output.masks[:,split_A]))==1:
-            raise ValueError('Split_A was not used to train any classifiers.')
+            raise ValueError('Split_A was not used to train any models.')
 
         if True in np.unique(training_output.masks[:,split_B]):
             raise ValueError('Split_B was used to train on. Only Split_A should be used for training.')
@@ -102,7 +102,7 @@ class ReturnCounterfactualOutputsBasic(ReturnCounterfactualOutputInterface):
         split : NDArray of bool, shape (n_samples)
             Indicates which subset of split_class samples were fair game for training.
         
-        training_output : MaskMarginStorageInterface 
+        training_output : BaseStorage 
             Model training outputs for training regime where for split_class only samples in split were fair game (for the opposite class all samples were fair game)
         """
         index_split_A = split

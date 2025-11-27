@@ -55,7 +55,7 @@ class RandomGeneratorSNR:
 
 class RandomGeneratorTC:
     """
-    Generates random seeds for various components of TC experiments using a batch starter seed.
+    Generates random seeds for various components of TC pipelines using a batch starter seed.
     All seeds are newly generated at each call.
 
     Parameters

@@ -4,23 +4,19 @@ from typing import Type
 
 import chz
 
-from ..datamodels.base import DatamodelsPipelineInterface
-from ..datamodels.datamodels_pipeline import DatamodelsPipelineBasic
 from ..datamodels.indices import IndicesFunction
-from ..datamodels.regressor import LinearRegressionFactory
-from ..datastorage.combined_mask_margin import CombinedMaskMarginStorage
-from ..datasamplers import mask_factory_fn, mask_factory_init_fn
-from ..datasamplers.feature_selectors import select_features_basic, select_features_fn
-from ..datasamplers.mask_generators import mask_factory_fixed_alpha
-from ..datasamplers.random_generators import (
+from subgroups.models.regressor import datamodel_factory_linear, datamodel_factory_fn
+from ..samplers import mask_factory_fn, mask_factory_init_fn
+from ..samplers.feature_selectors import select_features_basic, select_features_fn
+from ..samplers.mask_generators import mask_factory_fixed_alpha
+from ..samplers.random_generators import (
     RandomGeneratorSNR,
-    RandomGeneratorTC,
     RandomGeneratorTC,
 )
 from ..datasets import DatasetInterface
-from ..experiments.stopping_condition import StoppingConditionInterface
-from ..classifiers import model_factory_fn, model_factory_init_fn
-from ..classifiers.xgboost import model_factory_xgboost
+from ..pipelines.stopping_condition import StoppingConditionInterface
+from ..models import model_factory_fn, model_factory_init_fn
+from ..models.xgboost import model_factory_xgboost
 
 
 @chz.chz
@@ -71,7 +67,7 @@ class ExperimentBase:
     @chz.init_property
     def path_to_classifier_outputs(self):
         """
-        Path to the classifiers outputs of the experiment.
+        Path to the models outputs of the experiment.
         """
         if self.path is None:
             return None
@@ -167,34 +163,22 @@ class Experiment(ExperimentBase):
     datamodels_pipeline: DatamodelsPipelineInterface
         Datamodels pipeline for the experiment.
     tc_random_generator : Type[RandomGeneratorTC]
-        Random generator for TC experiments.
-    mask_factory : subgroups.datasamplers.mask_factory_fn
+        Random generator for TC pipelines.
+    mask_factory : subgroups.samplers.mask_factory_fn
         Factory for generating masks.
     model_factory : model_factory_fn
-        Factory for creating classifiers.
-    indices_to_fit: IndicesFunction
+        Factory for creating models.
+    sample_selector: IndicesFunction
         Returns indices to fit for the experiment.
     n_features : int
         Number of features to use for the experiment.
     """
-    # Required Args
-    datamodels_pipeline_selection: DatamodelsPipelineInterface=chz.field(default=DatamodelsPipelineBasic, doc='Datamodels pipeline for the experiment.')
-
     # Training Args
-    mask_factory: mask_factory_fn = chz.field(default=mask_factory_fixed_alpha, doc='Factory for generating masks. This will be used for training the classifiers.')
-    model_factory: model_factory_fn = chz.field(default=model_factory_xgboost, doc='Factory for creating classifiers. This will be used for training the classifiers.')
-    tc_random_generator: Type[RandomGeneratorTC]=chz.field(default=RandomGeneratorTC, doc='Random generator for TC experiments. Will return independent random seeds for each component of the TC experiment, based on a batch starter seed.')
-    indices_to_fit: IndicesFunction=chz.field(default=None, doc='Indices to fit for the experiment.')
+    mask_factory: mask_factory_fn = chz.field(default=mask_factory_fixed_alpha, doc='Factory for generating masks. This will be used for training the models.')
+    model_factory: model_factory_fn = chz.field(default=model_factory_xgboost, doc='Factory for creating models. This will be used for training the models.')
+    datamodel_factory: datamodel_factory_fn = chz.field(default=datamodel_factory_linear, doc='Factory for creating models. This will be used for training the models.')
+    tc_random_generator: Type[RandomGeneratorTC]=chz.field(default=RandomGeneratorTC, doc='Random generator for TC pipelines. Will return independent random seeds for each component of the TC experiment, based on a batch starter seed.')
     n_features: int = chz.field(default=None, doc='Number of features to use for the experiment.')
-
-    @chz.init_property
-    def datamodels_pipeline(self):
-        if self.datamodels_pipeline_selection is DatamodelsPipelineBasic:
-            return DatamodelsPipelineBasic(datamodel_factory=LinearRegressionFactory(),
-                                                    combined_mask_margin_storage=CombinedMaskMarginStorage(path_to_inputs=os.path.join(self.path, self.experiment_name, "classifier_outputs")),
-                                                    path_to_outputs=os.path.join(self.path, self.experiment_name, "datamodel_outputs"))
-        else:
-            return self.datamodels_pipeline_selection
 
     @chz.init_property
     def npcs(self):
@@ -228,7 +212,7 @@ class SNRExperiment(ExperimentBase):
     mask_factory_initializer : mask_factory_init_fn
         Initializer for the mask factory.
     snr_n_models : int
-        Number of classifiers to build from ModelFactory. Each model will be trained on a different mask from MaskFactory.
+        Number of models to build from ModelFactory. Each model will be trained on a different mask from MaskFactory.
     snr_n_passes : int
         Number of model initializations for SNR.
     npcs_min: int
@@ -236,7 +220,7 @@ class SNRExperiment(ExperimentBase):
     npcs_max: int
         Maximum number of components required for each SNR.
     snr_random_generator : Type[RandomGeneratorSNR]
-        Random generator for SNR experiments.
+        Random generator for SNR pipelines.
     stopping_condition : StoppingConditionInterface
         Stopping condition for the SNR experiment.
 
@@ -245,11 +229,11 @@ class SNRExperiment(ExperimentBase):
     # SNR experiment Args
     model_factory_initializer: model_factory_init_fn=chz.field(default=None, doc='Initializer for the model factory. This will be used to sample instances of ModelFactory with different hyperparameters for the SNR experiment.')
     mask_factory_initializer: mask_factory_init_fn=chz.field(default=None, doc='Initializer for the mask factory. This will be used to sample instances of MaskFactory with different hyperparameters for the SNR experiment.')
-    snr_n_models: int=chz.field(default=20, doc='Number of classifiers to build from ModelFactory. Each model will be trained on a different mask from MaskFactory.')
+    snr_n_models: int=chz.field(default=20, doc='Number of models to build from ModelFactory. Each model will be trained on a different mask from MaskFactory.')
     snr_n_passes: int=chz.field(default=15, doc='Number of passes over the same mask matrix for the SNR experiment (the number of times ModelFactory.build_model(seed=i) will be called with different seeds).')
     npcs_min: int=chz.field(default=5, doc='Minimum number of PCs to use for the SNR experiment.')
     npcs_max: int=chz.field(default=50, doc='Maximum number of PCs to use for the SNR experiment.')
-    snr_random_generator: Type[RandomGeneratorSNR]=chz.field(default=None, doc='Random generator for SNR experiments. Will return independent random seeds for each component of the SNR experiment, based on a batch starter seed.')
+    snr_random_generator: Type[RandomGeneratorSNR]=chz.field(default=None, doc='Random generator for SNR pipelines. Will return independent random seeds for each component of the SNR experiment, based on a batch starter seed.')
     stopping_condition: StoppingConditionInterface=chz.field(default=None, doc='Stopping condition for the SNR experiment.')
 
     

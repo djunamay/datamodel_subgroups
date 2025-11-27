@@ -1,7 +1,7 @@
 from typing import Protocol
 from numpy.typing import NDArray
 import numpy as np
-from ..classifiers import SklearnClassifier
+from ..models import SklearnClassifier
 
 def compute_margins(probabilities: NDArray[float], labels: NDArray[bool]) -> NDArray[float]:
     r"""

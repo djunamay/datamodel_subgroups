@@ -1,5 +1,5 @@
-from ..datastorage.mask_margin import MaskMarginStorage
-from ..datasamplers.mask_generators import mask_factory_fixed_alpha
+from ..storage.training import MaskMarginStorage
+from ..samplers.mask_generators import mask_factory_fixed_alpha
 from ..datasets.test_data import RandomDataset
 import numpy as np
 from functools import partial

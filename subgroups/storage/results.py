@@ -146,7 +146,7 @@ class ResultsStorage(ResultsStorageInterface):
     def _sample_indices(self):
         """return sample indices that correspond to the order of rows in weights"""
         sorted_batch_numbers = self._batch_number[self._batch_number_sorted_indices]
-        return np.array([self.experiment.indices_to_fit(x) for x in sorted_batch_numbers]).reshape(-1)
+        return np.array([self.experiment.sample_selector(x) for x in sorted_batch_numbers]).reshape(-1)
     
     @cached_property
     def _rows_to_keep(self):

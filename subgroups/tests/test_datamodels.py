@@ -1,17 +1,17 @@
 from ..datasets.test_data import RandomDataset
-from ..datasamplers.mask_generators import mask_factory_fixed_alpha
-from ..datasamplers.random_generators import RandomGeneratorTC
-from ..classifiers.xgboost import model_factory_xgboost
-from ..experiments.pipeline_tc import pipeline_tc
-from ..datastorage.experiment import Experiment
+from ..samplers.mask_generators import mask_factory_fixed_alpha
+from ..samplers.random_generators import RandomGeneratorTC
+from ..models.xgboost import model_factory_xgboost
+from ..pipelines.pipeline_tc import pipeline_tc
+from ..storage.experiment import Experiment
 from ..datamodels.datamodels_pipeline import DatamodelsPipelineBasic
-from ..datamodels.regressor import LassoFactory
+from subgroups.models.regressor import datamodel_factory_lasso
 from ..datamodels.indices import SequentialIndices
 import shutil
 import numpy as np
 import os
-from ..datastorage.combined_mask_margin import CombinedMaskMarginStorage
-from ..datasamplers.feature_selectors import select_features_basic
+from ..storage.combined_mask_margin import CombinedMaskMarginStorage
+from ..samplers.feature_selectors import select_features_basic
 from functools import partial
 
 def test_pipeline_dm():
@@ -26,8 +26,8 @@ def test_pipeline_dm():
                      experiment_name = 'test_experiment',
 
                      datamodels_pipeline_selection = DatamodelsPipelineBasic(combined_mask_margin_storage = CombinedMaskMarginStorage(path_to_inputs = './temp/test_experiment/classifier_outputs'),
-                                                        datamodel_factory = LassoFactory(n_lambdas=10, cv_splits=5),
-                                                        path_to_outputs = './temp/test_experiment/datamodel_outputs'),
+                                                                             datamodel_factory = partial(datamodel_factory_lasso, n_lambdas=10, cv_splits=5),
+                                                                             path_to_outputs = './temp/test_experiment/datamodel_outputs'),
                      indices_to_fit = SequentialIndices(batch_size=5),
                      n_features = 5,
                      feature_selector = select_features_basic)

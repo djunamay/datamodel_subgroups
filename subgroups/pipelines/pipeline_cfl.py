@@ -1,7 +1,7 @@
-from subgroups.datastorage.experiment import Experiment
+from subgroups.storage.experiment import Experiment
 from subgroups.counterfactuals.base import ReturnCounterfactualOutputInterface
-from subgroups.datasamplers.mask_generators import mask_factory_counterfactuals
-from subgroups.experiments.counterfactuals import CounterfactualArgs, run_counterfactual_for_one_split
+from subgroups.samplers.mask_generators import mask_factory_counterfactuals
+from subgroups.pipelines.counterfactuals import CounterfactualArgs, run_counterfactual_for_one_split
 from numpy.typing import NDArray
 
 def pipeline_cfl(experiment: Experiment, split: NDArray[bool], n_models: int, batch_starter_seed: int, in_memory: bool, return_counterfactual_outputs: ReturnCounterfactualOutputInterface):

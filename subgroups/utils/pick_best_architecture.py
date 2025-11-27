@@ -87,7 +87,7 @@ def return_best_model_index(directory, acc_cutoff=0.8):
     test_accuracy_data = np.concatenate([return_test_accuracy_data(path) for path in acc_paths])
     snr_data = np.concatenate([return_snr_data(path) for path in snr_paths])
 
-    # get indices for classifiers with test accuracy > cutoff
+    # get indices for models with test accuracy > cutoff
     index = np.argwhere(test_accuracy_data[:,1]>acc_cutoff).reshape(-1)
 
     # of these indices, get the one with the highest SNR

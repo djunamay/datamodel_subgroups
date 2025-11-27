@@ -1,5 +1,5 @@
-from ..datastorage.experiment import Experiment
-from ..datastorage.splits import SplitStorage, Split
+from ..storage.experiment import Experiment
+from ..storage.splits import SplitStorage, Split
 from ..splits.base import SplitFactoryInterface
 from ..counterfactuals.base import ReturnCounterfactualOutputInterface
 from ..splits.base import ProcessExperimentForSplitsInterface, ReturnBestSplitInterface
@@ -43,7 +43,7 @@ def pipeline_split(experiment: Experiment,
     K : NDArray[float]
             Array of parameters of values used by SplitFactoryInterface to generate splits.
     n_models : int
-            Number of classifiers to perform counterfactual experiments on.
+            Number of models to perform counterfactual pipelines on.
     in_memory : bool
             If True, run computation without writing intermediate results to disk.
 
@@ -95,5 +95,5 @@ def pipeline_split(experiment: Experiment,
 
     #TODO interface for clustering should be data in, get clusters (scikit learn)
     #TODO can test on a dataset where clusters are obvious (single features, other features encode subgroups - cluster 1 use dimension 3 for ground truth; run the whole thing from datamodels)
-         # if it passes, can start running experiments in the background (the interface shouldnt change)
+         # if it passes, can start running pipelines in the background (the interface shouldnt change)
          # while I clean up the code, improve it, and write more tests in the background

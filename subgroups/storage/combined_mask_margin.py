@@ -5,24 +5,15 @@ from abc import ABC
 from typing import Union
 import numpy as np
 Array = Union[np.ndarray, np.memmap]
-
-class CombinedMaskMarginStorageInterface(ABC):
-
-    @property
-    def masks(self) -> Array:
-        ...
-
-    @property
-    def margins(self) -> Array:
-        ...
+from .training import BaseStorage
 
 @chz.chz
-class CombinedMaskMarginStorage(CombinedMaskMarginStorageInterface):
+class CombinedMaskMarginStorage(BaseStorage):
     """
     A basic implementation of DatamodelsPipelineInterface, which fits a SklearnRegressor to each sample specified in the indices.
     The datamodels are fitted independently of one another.
     """
-    path_to_inputs: str = chz.field(doc='Path to classifiers outputs containing the masks and margins.')
+    path_to_inputs: str = chz.field(doc='Path to models outputs containing the masks and margins.')
 
     @staticmethod
     def _find_files(directory, search_pattern):

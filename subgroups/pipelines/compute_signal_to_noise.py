@@ -11,15 +11,15 @@ from tqdm import tqdm
 import chz
 
 from ..datasets          import DatasetInterface
-from ..datasamplers      import mask_factory_fn, mask_factory_init_fn
-from ..datasamplers.random_generators import RandomGeneratorSNR
-from ..classifiers import model_factory_fn, model_factory_init_fn
+from ..samplers      import mask_factory_fn, mask_factory_init_fn
+from ..samplers.random_generators import RandomGeneratorSNR
+from ..models import model_factory_fn, model_factory_init_fn
 from ..utils.scoring     import compute_signal_noise
 from ..utils.configs     import write_chz_class_to_json, append_float_ndjson
 from .train_classifiers  import TrainClassifiersArgs, run_training_batch
 from .stopping_condition import StoppingConditionInterface
-from ..experiments.train_classifiers import fit_single_classifier, _make_storage
-from ..datasamplers.feature_selectors import select_features_fn
+from ..pipelines.train_classifiers import fit_single_classifier, _make_storage
+from ..samplers.feature_selectors import select_features_fn
 
 @chz.chz
 class ComputeSNRArgs:
@@ -31,15 +31,15 @@ class ComputeSNRArgs:
     ----------
     dataset : DatasetInterface
         Provides the feature matrix and labels.
-    mask_factory : subgroups.datasamplers.mask_factory_fn
+    mask_factory : subgroups.samplers.mask_factory_fn
         Creates a boolean training-mask for each split, using the method specified in the `MaskFactory`.
     model_factory : model_factory_fn
-        Builds fresh classifiers instances, using the model architecture specified in the `ModelFactory`.
+        Builds fresh models instances, using the model architecture specified in the `ModelFactory`.
     random_generator : RandomGeneratorSNR
         Supplies all reproducibility seeds (mask, model, shuffle, …).  
         See the *RandomGenerator* docstring for the exact per-seed policy.
     n_models : int
-        Number of classifiers (i.e., training splits) to run. 
+        Number of models (i.e., training splits) to run.
     n_passes : int
         Number of times to build and train each of the `n_models` (i.e., maintaining the same training splits, but re-initializing the model and re-shuffling the training data).
     in_memory : bool, default ``True``
@@ -78,7 +78,7 @@ class ComputeSNRArgsMultipleArchitectures:
         Supplies all reproducibility seeds (mask, model, shuffle, …).  
         See the *RandomGenerator* docstring for the exact per-seed policy.
     n_models : int
-        Number of classifiers (i.e., training splits) to run. 
+        Number of models (i.e., training splits) to run.
     n_passes : int
         Number of times to build and train each of the `n_models` (i.e., maintaining the same training splits, but re-initializing the model and re-shuffling the training data).
     in_memory : bool, default ``True``

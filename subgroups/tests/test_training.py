@@ -1,11 +1,11 @@
-from ..datasamplers.mask_generators import mask_factory_fixed_alpha
+from ..samplers.mask_generators import mask_factory_fixed_alpha
 from ..datasets.test_data import RandomDataset
-from ..classifiers.xgboost import model_factory_xgboost
-from ..datastorage.experiment import Experiment
-from ..experiments.pipeline_tc import pipeline_tc
-from ..datasamplers.random_generators import RandomGeneratorTC
+from ..models.xgboost import model_factory_xgboost
+from ..storage.experiment import Experiment
+from ..pipelines.pipeline_tc import pipeline_tc
+from ..samplers.random_generators import RandomGeneratorTC
 import numpy as np
-from ..datasamplers.feature_selectors import select_features_basic
+from ..samplers.feature_selectors import select_features_basic
 from functools import partial
 
 def test_tc_pipeline_across_seeds():

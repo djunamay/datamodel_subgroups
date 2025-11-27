@@ -1,5 +1,5 @@
-from ..datastorage.splits import SplitStorage, Split
-from ..datastorage.registry import RandomDataset
+from ..storage.splits import SplitStorage, Split
+from ..storage.registry import RandomDataset
 
 import numpy as np
 

@@ -7,7 +7,7 @@ from functools import partial
 from typing import Callable
 
 class SklearnClassifier(ClassifierMixin, BaseEstimator):
-    """Represents a classifiers that combines BaseEstimator and ClassifierMixin functionalities."""
+    """Represents a models that combines BaseEstimator and ClassifierMixin functionalities."""
 
 model_factory_fn = Callable[[np.random.Generator], SklearnClassifier]
 """

@@ -1,17 +1,17 @@
-from ..experiments.train_classifiers import run_training_batch, TrainClassifiersArgs
-from ..experiments.compute_signal_to_noise import ComputeSNRArgsMultipleArchitectures
-from ..datasamplers.mask_generators import mask_factory_fixed_alpha
+from ..pipelines.train_classifiers import run_training_batch, TrainClassifiersArgs
+from ..pipelines.compute_signal_to_noise import ComputeSNRArgsMultipleArchitectures
+from ..samplers.mask_generators import mask_factory_fixed_alpha
 from ..datasets.test_data import RandomDataset
-from ..classifiers.xgboost import model_factory_xgboost, model_factory_init_xgboost
-from ..datastorage.experiment import SNRExperiment
-from ..experiments.pipeline_snr import pipeline_snr
-from ..datasamplers.mask_generators import mask_factory_init_fixed_alpha
-from ..datasamplers.random_generators import RandomGeneratorSNR
-from ..experiments.stopping_condition import SNRPrecisionStopping
-from ..experiments.compute_signal_to_noise import ComputeSNRArgs, snr_inputs_for_one_architecture, compute_signal_noise
+from ..models.xgboost import model_factory_xgboost, model_factory_init_xgboost
+from ..storage.experiment import SNRExperiment
+from ..pipelines.pipeline_snr import pipeline_snr
+from ..samplers.mask_generators import mask_factory_init_fixed_alpha
+from ..samplers.random_generators import RandomGeneratorSNR
+from ..pipelines.stopping_condition import SNRPrecisionStopping
+from ..pipelines.compute_signal_to_noise import ComputeSNRArgs, snr_inputs_for_one_architecture, compute_signal_noise
 import numpy as np
 from ..utils.random import fork_rng
-from ..datasamplers.feature_selectors import select_features_basic
+from ..samplers.feature_selectors import select_features_basic
 from functools import partial
 
 def test_fork_rng():
