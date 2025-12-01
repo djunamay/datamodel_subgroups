@@ -12,9 +12,9 @@ from numpy.typing import NDArray
 @dataclass(kw_only=True)
 class BaseStorage:
 
-    n_models: int
+    n_models: int=None
+    n_samples: int=None
     path_to_outputs: str=None
-    batch_starter_seed: int=0
 
     def __post_init__(self):
 
@@ -22,6 +22,9 @@ class BaseStorage:
             self.in_memory = True
         else:
             self.in_memory = False
+
+        if self.in_memory and (self.n_models is None or self.n_samples is None):
+            raise ValueError("In-memory BaseStorage requires n_models and n_samples to be specified.")
 
         self.done_training = self._create_array(dtype=bool, shape=(self.n_models,), filename='done_training')
 
@@ -50,6 +53,10 @@ class BaseStorage:
 
         path = self.path_to_outputs + f"_{filename}.npy"
         mode = "r+" if os.path.exists(path) else "w+"
+
+        if mode == "w+" and (shape==(None, None) or shape==(None,)):
+            raise ValueError("File does not yet exist, must specify dtype and shape, or check path to file.")
+
         return np.lib.format.open_memmap(path, dtype=dtype, mode=mode, shape=shape)
 
     def is_filled(self, instance_index: int) -> bool:
@@ -96,11 +103,10 @@ class MaskMarginStorage(BaseStorage):
     rng : Optional[np.random.Generator], optional
         Random number generator for mask generation. Default is None.
     """
-    n_samples: int
     labels: NDArray[bool]=None
     mask_factory: mask_factory_fn=None
     rng: Optional[np.random.Generator] = np.random.default_rng(0)
-    
+
     @staticmethod
     def _populate_masks(mask_factory: mask_factory_fn, array: Array, labels: NDArray[bool], rng: np.random.Generator):
         """
@@ -131,9 +137,15 @@ class MaskMarginStorage(BaseStorage):
         """
         Masks array (shape: [n_models, n_samples]).
         """
-        populate_masks = True if self.in_memory or not os.path.exists(self.path_to_outputs + '_masks.npy') else False
+        populate_masks = (
+                self.in_memory
+                or (not os.path.exists(self.path_to_outputs + "_masks.npy")
+                and self.mask_factory is not None)
+        )
         temporary_masks = self._create_array(dtype=bool, shape=(self.n_models, self.n_samples), filename='masks')
         if populate_masks:
+            if self.mask_factory is None or self.labels is None:
+                raise ValueError("mask_factory and labels must be provided to populate masks.")
             return self._populate_masks(self.mask_factory, temporary_masks, self.labels, self.rng)
         else:
             return temporary_masks
@@ -159,7 +171,6 @@ class DatamodelStorage(BaseStorage):
     A basic implementation of DatamodelsPipelineInterface, which fits a SklearnRegressor to each sample specified in the indices.
     The datamodels are fitted independently of one another.
     """
-    n_samples: int
 
     @cached_property
     def weights(self):
@@ -184,3 +195,76 @@ class DatamodelStorage(BaseStorage):
     @cached_property
     def s_correlations(self):
         return self._create_array(dtype=np.float32, shape=(self.n_models,), filename='s_correlations')
+
+import re
+from pathlib import Path
+import os
+
+def combine_batches(path_to_data, overwrite: bool = False, return_data : bool=False):
+
+    if any(Path(path_to_data).glob("*weights*")):
+        attributes = ['weights', 'biases', 'rmses', 's_correlations', 'p_correlations', 'sample_indices', 'done_training']
+        storage_class = DatamodelStorage
+        matrix_sample_size = 'weights'
+
+    elif any(Path(path_to_data).glob("*margins*")):
+        attributes = ['margins', 'masks', 'test_accuracies', 'done_training']
+        storage_class = MaskMarginStorage
+        matrix_sample_size = 'masks'
+    else:
+        print('The output path does not seem to contain datamodel or classifier outputs. Is this really the correct path?')
+        return
+
+    path = list(Path(path_to_data).glob("combined*"))
+    if path:
+        if overwrite:
+            for p in path:
+                if p.is_file():
+                    p.unlink()
+        else:
+            print(
+                "Combined file already exists. "
+                "Load it with BaseStorage(path_to_outputs=*combined*) "
+                "or overwrite it by passing overwrite=True."
+            )
+            return
+
+    batches = sorted({
+        int(re.search(r"batch_(\d+)", p.name).group(1))
+        for p in Path(path_to_data).iterdir()
+        if "batch_" in p.name
+    })
+
+    if not batches:
+        print("No batch_* folders found in the given path.")
+        return
+
+    total_models = 0
+    n_samples = []
+    storage = []
+    for i, batch in enumerate(batches):
+        storage.append(storage_class(path_to_outputs=os.path.join(path_to_data, f"batch_{batch}")))
+        total_models+=np.sum(storage[i].done_training)
+        n_samples.append(getattr(storage[i], matrix_sample_size).shape[1])
+
+    if len(set(n_samples)) != 1:
+        raise ValueError("Batches do not have the same number of samples.")
+
+    output_path = os.path.join(path_to_data, f"combined")
+    combined = storage_class(path_to_outputs=output_path, n_models = int(total_models), n_samples = n_samples[0])
+
+    start = 0
+    for i, batch in enumerate(batches):
+        done_models = storage[i].done_training
+        n_models = np.sum(done_models)
+        end = start+n_models
+
+        for attr in attributes:
+            getattr(combined, attr)[start:end] = getattr(storage[i], attr)[done_models]
+
+        start = end
+
+    print(f"data combined as {output_path}*")
+
+    if return_data:
+        return combined

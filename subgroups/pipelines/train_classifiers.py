@@ -1,4 +1,7 @@
 # Standard library
+from typing import Any
+
+
 import os
 import warnings
 
@@ -17,6 +20,7 @@ from ..storage.training import MaskMarginStorage
 from ..utils.configs import check_and_write_config
 from ..utils.random import fork_rng
 from ..utils.scoring import compute_margins
+from ..samplers.mask_generators import mask_factory_fn
 
 
 def fit_single_classifier(features: NDArray[np.float32], labels: NDArray[bool], mask: NDArray[bool], model: SklearnClassifier, shuffle_rng: np.random.Generator):
@@ -55,7 +59,7 @@ def fit_single_classifier(features: NDArray[np.float32], labels: NDArray[bool], 
     margins = compute_margins(model.predict_proba(features)[:,1], labels)
     return margins, test_accuracy
 
-def run_training_batch(experiment: Experiment, batch_size: int, batch_starter_seed: int=0, in_memory: bool=True, overwrite_config: bool=False):
+def run_training_batch(experiment: Experiment, batch_size: int, batch_starter_seed: int=0, in_memory: bool=True, overwrite_config: bool=False, mask_factory: mask_factory_fn=None, use_tqdm=True):
     """
     Train multiple models and store the results in a mask margin storage object.
 
@@ -78,7 +82,7 @@ def run_training_batch(experiment: Experiment, batch_size: int, batch_starter_se
     storage = MaskMarginStorage(n_models=batch_size,
                                 n_samples=experiment.dataset.num_samples,
                                 labels=experiment.dataset.coarse_labels,
-                                mask_factory=experiment.mask_factory,
+                                mask_factory=experiment.mask_factory if mask_factory is None else mask_factory,
                                 path_to_outputs=os.path.join(experiment.path_to_classifier_outputs, f"batch_{batch_starter_seed}") if not in_memory else None,
                                 rng= random_generator.mask_rng)
 
@@ -95,7 +99,12 @@ def run_training_batch(experiment: Experiment, batch_size: int, batch_starter_se
     train_data_shuffle_rngs_children = fork_rng(random_generator.train_data_shuffle_rng, batch_size)
 
     features = experiment.dataset.features[:, experiment.feature_selector(experiment.npcs)]
-    for i, mask in tqdm(enumerate(storage.masks), desc='Training models', total=batch_size):
+
+    it = enumerate(storage.masks)
+    if use_tqdm:
+        it = tqdm(it, desc='Training models', total=batch_size)
+
+    for i, mask in it:
         
         if storage.is_filled(i):
             continue

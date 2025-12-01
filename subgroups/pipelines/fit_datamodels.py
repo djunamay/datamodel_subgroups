@@ -37,11 +37,18 @@ def get_samples_for_model(masks, margins, seed_shuffle, sample_index: int, n_tra
 
     return X, y
 
+from pathlib import Path
 
-def fit_datamodels_batch(experiment : Experiment, mask_margin_storage : MaskMarginStorage, batch_size : int, n_train : int, n_test : int=None, batch_starter_seed : int=0, in_memory : bool=True, overwrite_config : bool=False):
+def fit_datamodels_batch(experiment : Experiment, batch_size : int, n_train : int, n_test : int=None, path_to_inputs : Path=None, mask_margin_storage : MaskMarginStorage=None, batch_starter_seed : int=0, in_memory : bool=True, overwrite_config : bool=False):
 
     if not in_memory:
         check_and_write_config(experiment, os.path.join(experiment.path_to_results, "experiment_config.json"), overwrite_config)
+
+    if path_to_inputs is None and mask_margin_storage is None:
+        ValueError("Either path_to_inputs or mask_margin_storage must be provided")
+
+    if path_to_inputs is not None:
+        mask_margin_storage = MaskMarginStorage(path_to_outputs=path_to_inputs)
 
     sample_indices = np.arange(batch_starter_seed * batch_size, batch_starter_seed * batch_size + batch_size)
 
@@ -58,8 +65,8 @@ def fit_datamodels_batch(experiment : Experiment, mask_margin_storage : MaskMarg
         if storage.is_filled(i):
             continue
 
-        X, y = get_samples_for_model(mask_margin_storage.masks, mask_margin_storage.margins, train_data_shuffle_rngs_children[sample_index].integers(0, 2 ** 32 - 1), sample_index, n_train, n_test)
-        model = experiment.datamodel_factory(seed=build_model_rngs_children[sample_index].integers(0, 2 ** 32 - 1))
+        X, y = get_samples_for_model(mask_margin_storage.masks, mask_margin_storage.margins, train_data_shuffle_rngs_children[i].integers(0, 2 ** 32 - 1), sample_index, n_train, n_test)
+        model = experiment.datamodel_factory(seed=build_model_rngs_children[i].integers(0, 2 ** 32 - 1))
 
         model.fit(X[:n_train], y[:n_train])
 

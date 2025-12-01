@@ -4,7 +4,6 @@ from typing import Type
 
 import chz
 
-from ..datamodels.indices import IndicesFunction
 from subgroups.models.regressor import datamodel_factory_linear, datamodel_factory_fn
 from ..samplers import mask_factory_fn, mask_factory_init_fn
 from ..samplers.feature_selectors import select_features_basic, select_features_fn
