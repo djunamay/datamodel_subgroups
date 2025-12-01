@@ -17,6 +17,7 @@ from tqdm import tqdm
 import numpy as np
 import chz
 from functools import partial
+from subgroups.storage.training import MaskMarginStorage
 
 def split_vectors(index, maps, cut):
 
@@ -65,7 +66,8 @@ class CounterfactualClustering(ClusterMixin, BaseEstimator):
             retrain_alpha = None,
             retrain_k = None,
             verbose = True,
-            use_tqdm = True):
+            use_tqdm = True,
+            weights = None):
             self.random_state = random_state
             self.eigen_tol = eigen_tol
             self.affinity = affinity
@@ -78,52 +80,55 @@ class CounterfactualClustering(ClusterMixin, BaseEstimator):
             self.experiment = experiment
             self.verbose = verbose
             self.use_tqdm = use_tqdm
+            self.rng = np.random.default_rng(seed=self.random_state)
+            self.weights = weights
 
     def _score_next_split(self, index):
 
-        if self.retrain:
-            maps = _spectral_embedding(
-                adjacency=self.affinity_matrix_[index][:,index],
-                n_components=1,
-                eigen_solver=self.eigen_solver,
-                random_state=self.random_state,
-                eigen_tol=self.eigen_tol
-            ).reshape(-1)
+        maps = _spectral_embedding(
+            adjacency=self.affinity_matrix_[index][:,index],
+            n_components=1,
+            eigen_solver=self.eigen_solver,
+            random_state=self.random_state,
+            eigen_tol=self.eigen_tol
+        ).reshape(-1)
 
-            cuts = np.percentile(maps, self.retrain_k)
-            splits = [split_vectors(index, maps, cut) for cut in cuts]
-
-            # check that splits are valid with mask factory alpha 
-            
-            if self.use_tqdm:
-                it = tqdm(splits, desc='Evaluating next splits for this cluster', total=len(splits))
-            else:
-                it = splits
-
-            scores = []
-            for split in it:
-                
-                score = 0
-                for s in split:
-                    try:
-                        retrain_output = run_training_batch(self.experiment, batch_size=self.retrain_batch_size, mask_factory=partial(mask_factory_counterfactuals, alpha=self.retrain_alpha, split=s), use_tqdm=False)
-                        acc_in_split, acc_out_split = split_accuracies(retrain_output, index, s)
-                        score += np.mean(acc_in_split - acc_out_split) 
-
-                    except ValueError as e:
-                        msg = str(e)
-                        if "Cannot sample" in msg and "per class" in msg:
-                            # sampling error: assign score to be zero here (don't have the power to make this split)
-                            score += 0
-                        else:
-                            # re-raise unknown ValueErrors
-                            raise
-
-                scores.append(score)
-
-            return scores[np.argmax(scores)], splits[np.argmax(scores)][0]
+        cuts = np.percentile(maps, self.retrain_k)
+        splits = [split_vectors(index, maps, cut) for cut in cuts]
+        
+        if self.use_tqdm:
+            it = tqdm(splits, desc='Evaluating next splits for this cluster', total=len(splits))
         else:
-            pass # not yet implemented
+            it = splits
+
+        scores = []
+        for split in it:
+            
+            score = 0
+            for s in split:
+                try:
+                    if self.retrain:
+                        output = run_training_batch(self.experiment, batch_size=self.retrain_batch_size, mask_factory=partial(mask_factory_counterfactuals, alpha=self.retrain_alpha, split=s), use_tqdm=False, batch_starter_seed=self.rng.integers(0, 2 ** 32 - 1))
+                    else:
+                        output = MaskMarginStorage(n_models=self.retrain_batch_size, n_samples=self.experiment.dataset.num_samples, labels=self.experiment.dataset.coarse_labels, mask_factory=partial(mask_factory_counterfactuals, alpha=self.retrain_alpha, split=s),
+                                        rng= self.experiment.tc_random_generator(batch_starter_seed=self.rng.integers(0, 2 ** 32 - 1)).mask_rng)
+                        output.margins = np.matmul(self.weights, output.masks.T).T
+
+                    acc_in_split, acc_out_split = split_accuracies(output, index, s)
+                    score += np.mean(acc_in_split - acc_out_split) 
+
+                except ValueError as e:
+                    msg = str(e)
+                    if "Cannot sample" in msg and "per class" in msg:
+                        # sampling error: assign score to be zero here (don't have the power to make this split)
+                        score += 0
+                    else:
+                        # re-raise unknown ValueErrors
+                        raise
+
+            scores.append(score)
+
+        return scores[np.argmax(scores)], splits[np.argmax(scores)][0]
 
 
     @_fit_context(prefer_skip_nested_validation=True)
@@ -135,7 +140,8 @@ class CounterfactualClustering(ClusterMixin, BaseEstimator):
             dtype=np.float64,
             ensure_min_samples=2,
         )
-
+        if not self.retrain and self.weights is None:
+            self.weights = X
         if self.affinity == 'cosine_similarity':
             self.affinity_matrix_ = (cosine_similarity(X)+1)/2
         elif self.affinity == 'precomputed':
