@@ -2,6 +2,7 @@ import numpy as np
 from numpy.typing import NDArray
 from typing import Callable
 from functools import partial
+import ipdb
 
 mask_factory_fn = Callable[[NDArray[bool], np.random.Generator], NDArray[bool]]
 """Callable signature for mask functions.
@@ -71,6 +72,8 @@ def mask_factory_counterfactuals(labels: NDArray[bool], rng: np.random.Generator
 
     if not split_ok:
         raise ValueError('Bool split vector must index samples from one class only.')
+       
+
 
     samples_per_class = int((len(labels) * alpha) / 2)
 

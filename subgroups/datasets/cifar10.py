@@ -88,3 +88,7 @@ class CIFAR10Dataset(BaseDataset):
         Descriptive data (shape: [n_samples, n_descriptive_features]).
         """
         return self._descriptive_data
+
+    @property
+    def untransformed_features(self):
+        pass

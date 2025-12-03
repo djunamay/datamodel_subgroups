@@ -18,6 +18,7 @@ import numpy as np
 import chz
 from functools import partial
 from subgroups.storage.training import MaskMarginStorage
+import ipdb
 
 def split_vectors(index, maps, cut):
 
@@ -67,7 +68,8 @@ class CounterfactualClustering(ClusterMixin, BaseEstimator):
             retrain_k = None,
             verbose = True,
             use_tqdm = True,
-            weights = None):
+            weights = None,
+            cluster_class_1 = True):
             self.random_state = random_state
             self.eigen_tol = eigen_tol
             self.affinity = affinity
@@ -82,6 +84,7 @@ class CounterfactualClustering(ClusterMixin, BaseEstimator):
             self.use_tqdm = use_tqdm
             self.rng = np.random.default_rng(seed=self.random_state)
             self.weights = weights
+            self.cluster_class_1 = cluster_class_1
 
     def _score_next_split(self, index):
 
@@ -122,6 +125,8 @@ class CounterfactualClustering(ClusterMixin, BaseEstimator):
                     if "Cannot sample" in msg and "per class" in msg:
                         # sampling error: assign score to be zero here (don't have the power to make this split)
                         score += 0
+                    elif "Bool split vector must index samples from one class only." in msg:
+                        score += 0
                     else:
                         # re-raise unknown ValueErrors
                         raise
@@ -150,7 +155,11 @@ class CounterfactualClustering(ClusterMixin, BaseEstimator):
         random_state = check_random_state(self.random_state)
 
         cluster_assignments = np.zeros(self.affinity_matrix_.shape[0])
-        cluster_assignments[~self.experiment.dataset.coarse_labels] = -1
+        
+        if self.cluster_class_1:
+            cluster_assignments[~self.experiment.dataset.coarse_labels] = -1
+        else:
+            cluster_assignments[self.experiment.dataset.coarse_labels] = -1
         working_clusters = set([0])
         done_clusters = set([-1])
 

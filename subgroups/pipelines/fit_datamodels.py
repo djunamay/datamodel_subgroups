@@ -16,6 +16,8 @@ from ..storage.training import DatamodelStorage, MaskMarginStorage
 from ..utils.configs import check_and_write_config
 from ..utils.random import fork_rng
 
+import ipdb
+
 # Type aliases
 Array = Union[np.ndarray, np.memmap]
 
@@ -40,6 +42,7 @@ def get_samples_for_model(masks, margins, seed_shuffle, sample_index: int, n_tra
 from pathlib import Path
 
 def fit_datamodels_batch(experiment : Experiment, batch_size : int, n_train : int, n_test : int=None, path_to_inputs : Path=None, mask_margin_storage : MaskMarginStorage=None, batch_starter_seed : int=0, in_memory : bool=True, overwrite_config : bool=False):
+
 
     if not in_memory:
         check_and_write_config(experiment, os.path.join(experiment.path_to_results, "experiment_config.json"), overwrite_config)
@@ -68,9 +71,13 @@ def fit_datamodels_batch(experiment : Experiment, batch_size : int, n_train : in
         X, y = get_samples_for_model(mask_margin_storage.masks, mask_margin_storage.margins, train_data_shuffle_rngs_children[i].integers(0, 2 ** 32 - 1), sample_index, n_train, n_test)
         model = experiment.datamodel_factory(seed=build_model_rngs_children[i].integers(0, 2 ** 32 - 1))
 
+        if n_train > X.shape[0]:
+            raise ValueError("N train is larger than samples in X, your alpha may be too high for the number of desired train samples.")
+            
         model.fit(X[:n_train], y[:n_train])
 
         stop = n_train + n_test if n_test is not None else X.shape[0]
+        #ipdb.set_trace()
         y_test, y_hat = y[n_train:stop], model.predict(X[n_train:stop])
 
         storage.fill_results(i, weights=model.coef_, biases=model.intercept_, p_correlations=pearsonr(y_test, y_hat)[0], s_correlations=spearmanr(y_test, y_hat)[0], rmses=root_mean_squared_error(y_test, y_hat), sample_indices=sample_index)
