@@ -34,6 +34,8 @@ def compute_margins(probabilities: NDArray[float], labels: NDArray[bool]) -> NDA
         Computed margins for each sample 
         (shape: [n_samples,]).
     """
+    probabilities = np.clip(probabilities, 1e-4, 1 - 1e-4) # for trivial examples
+
     return (labels*2-1)*(np.log(probabilities)-np.log(1-probabilities))
 
 

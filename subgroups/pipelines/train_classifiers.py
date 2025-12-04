@@ -57,7 +57,7 @@ def fit_single_classifier(features: NDArray[np.float32], labels: NDArray[bool], 
 
     test_accuracy = model.score(test_features, test_labels)
     margins = compute_margins(model.predict_proba(features)[:,1], labels)
-    return margins, test_accuracy
+    return margins, test_accuracy, model
 
 def run_training_batch(experiment: Experiment, batch_size: int, batch_starter_seed: int=0, in_memory: bool=True, overwrite_config: bool=False, mask_factory: mask_factory_fn=None, use_tqdm=True):
     """
@@ -99,7 +99,6 @@ def run_training_batch(experiment: Experiment, batch_size: int, batch_starter_se
     train_data_shuffle_rngs_children = fork_rng(random_generator.train_data_shuffle_rng, batch_size)
 
     features = experiment.dataset.features[:, experiment.feature_selector(experiment.npcs)]
-
     it = enumerate(storage.masks)
     if use_tqdm:
         it = tqdm(it, desc='Training models', total=batch_size)
@@ -110,9 +109,8 @@ def run_training_batch(experiment: Experiment, batch_size: int, batch_starter_se
             continue
 
         clf = experiment.model_factory(rng=build_model_rngs_children[i])
-        margins, acc = fit_single_classifier(features, experiment.dataset.coarse_labels, mask, clf, train_data_shuffle_rngs_children[i])
+        margins, acc, model = fit_single_classifier(features, experiment.dataset.coarse_labels, mask, clf, train_data_shuffle_rngs_children[i])
         storage.fill_results(i, margins=margins, test_accuracies=acc)
-
     return storage if in_memory else print(f"Train classifier output saved to {experiment.path_to_classifier_outputs}")
 
 if __name__ == "__main__":

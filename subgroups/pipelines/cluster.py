@@ -32,13 +32,13 @@ def split_accuracies(retrain_output, index, split):
     masked_margins = np.ma.masked_array(retrain_output.margins, retrain_output.masks)
     logits = masked_margins/(2*retrain_output.labels-1)
     correct = (logits>0) == retrain_output.labels
-    
+    #correct = masked_margins
     acc_in_split = np.sum(correct[:,split], axis=1)/np.sum(~correct[:,split].mask, axis=1)
     acc_out_split = np.sum(correct[:,index & ~split], axis=1)/np.sum(~correct[:,index & ~split].mask, axis=1)
     
     return acc_in_split, acc_out_split
 
-
+# make this a dataclass
 class CounterfactualClustering(ClusterMixin, BaseEstimator):
     _parameter_constraints: dict = {
         "eigen_solver": [StrOptions({"arpack", "lobpcg", "amg"}), None],
@@ -69,7 +69,8 @@ class CounterfactualClustering(ClusterMixin, BaseEstimator):
             verbose = True,
             use_tqdm = True,
             weights = None,
-            cluster_class_1 = True):
+            cluster_class_1 = True,
+            biases = None):
             self.random_state = random_state
             self.eigen_tol = eigen_tol
             self.affinity = affinity
@@ -85,6 +86,7 @@ class CounterfactualClustering(ClusterMixin, BaseEstimator):
             self.rng = np.random.default_rng(seed=self.random_state)
             self.weights = weights
             self.cluster_class_1 = cluster_class_1
+            self.biases = biases.reshape(-1,1)
 
     def _score_next_split(self, index):
 
@@ -115,18 +117,22 @@ class CounterfactualClustering(ClusterMixin, BaseEstimator):
                     else:
                         output = MaskMarginStorage(n_models=self.retrain_batch_size, n_samples=self.experiment.dataset.num_samples, labels=self.experiment.dataset.coarse_labels, mask_factory=partial(mask_factory_counterfactuals, alpha=self.retrain_alpha, split=s),
                                         rng= self.experiment.tc_random_generator(batch_starter_seed=self.rng.integers(0, 2 ** 32 - 1)).mask_rng)
-                        output.margins = np.matmul(self.weights, output.masks.T).T
+                        output.margins = (np.matmul(self.weights, output.masks.T)+self.biases).T
 
                     acc_in_split, acc_out_split = split_accuracies(output, index, s)
+                    #print(np.mean(acc_in_split))
+                    #print(np.mean(acc_out_split))
                     score += np.mean(acc_in_split - acc_out_split) 
 
-                except ValueError as e:
+                except ValueError as e: # TODO fix these error messages
                     msg = str(e)
                     if "Cannot sample" in msg and "per class" in msg:
                         # sampling error: assign score to be zero here (don't have the power to make this split)
                         score += 0
+                        break
                     elif "Bool split vector must index samples from one class only." in msg:
                         score += 0
+                        break
                     else:
                         # re-raise unknown ValueErrors
                         raise
@@ -175,6 +181,7 @@ class CounterfactualClustering(ClusterMixin, BaseEstimator):
                     cluster_assignments[split] = new_cluster
                     print(f"\033[3mSplit successful with score {score}, "
                     f"adding new cluster {new_cluster}.\033[0m")
+                    #working_clusters = None
                 elif score < self.split_thresh:
                     done_clusters.add(c)
                     working_clusters.remove(c)
@@ -182,6 +189,7 @@ class CounterfactualClustering(ClusterMixin, BaseEstimator):
                     f"moving cluster {c} to done clusters.\033[0m")
 
         self.labels_ = cluster_assignments
+        self.score = score
         print(f"\033[1mDone splitting. A total of {len(np.unique(self.labels_))-1} clusters found.\033[0m")
 
 
