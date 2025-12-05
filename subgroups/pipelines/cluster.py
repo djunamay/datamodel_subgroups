@@ -56,9 +56,10 @@ class CounterfactualClustering(ClusterMixin, BaseEstimator):
                 retrain_k = None, 
                 verbose = True, 
                 use_tqdm = True, 
-                weights = None, 
                 cluster_class_1 = True, 
-                biases = None): 
+                weights = None,
+                biases = None,
+                validate = True): 
                 self.random_state = random_state
                 self.eigen_tol = eigen_tol 
                 self.affinity = affinity 
@@ -72,23 +73,28 @@ class CounterfactualClustering(ClusterMixin, BaseEstimator):
                 self.verbose = verbose 
                 self.use_tqdm = use_tqdm 
                 self.rng = np.random.default_rng(seed=self.random_state) 
-                self.weights = weights 
                 self.cluster_class_1 = cluster_class_1 
                 self.biases = biases.reshape(-1,1)
                 self.labels = self.experiment.dataset.coarse_labels if self.cluster_class_1 else ~self.experiment.dataset.coarse_labels 
                 self.samples_per_class = int((len(self.labels) * self.retrain_alpha) / 2)
                 self.min_test_fraction = 0.3
+                self.max_train_fraction = 1-self.min_test_fraction
+                self.weights = weights
+                self.validate = validate
 
     def _split_score(self, retrain_output, split):
         """
         Compute difference in model accuracies on samples in split vs universe of samples outside of split belonging to the class being split.
         """
         masked_margins = np.ma.masked_array(retrain_output.margins, retrain_output.masks)
-        #correct = (masked_margins>0) == retrain_output.labels
-        logits = masked_margins/(2*retrain_output.labels-1) # TODO: why can't I get rid of this without the scores becoming negative in the last check at the end of the code?
-        correct = (logits>0) == retrain_output.labels
-        acc_in_split = np.sum(correct[:,split], axis=1)/np.sum(~correct[:,split].mask, axis=1)
-        acc_out_split = np.sum(correct[:,self.labels & ~split], axis=1)/np.sum(~correct[:,self.labels & ~split].mask, axis=1)
+        correct = masked_margins > 0
+
+        correct_inside_split = correct[:,split]  
+        correct_outside_split = correct[:,self.labels & ~split]
+
+        acc_in_split = np.sum(correct_inside_split, axis=1)/np.sum(~correct_inside_split.mask, axis=1)
+        acc_out_split = np.sum(correct_outside_split, axis=1)/np.sum(~correct_outside_split.mask, axis=1)
+
         return np.mean(acc_in_split-acc_out_split)
 
 
@@ -96,17 +102,9 @@ class CounterfactualClustering(ClusterMixin, BaseEstimator):
         """
         Return bool vector for current cluster indicating split along embedding.
         """
-        split_extended_greater = np.zeros_like(index)
-        split_extended_greater[index] = maps > np.percentile(maps, k)
-        return split_extended_greater
-
-    def _filter_splits(self, index, splits):
-        keep = []
-        for i in splits:
-            if (i[index].sum()*(1-self.min_test_fraction) >= self.samples_per_class) and ((~i[index]).sum()*(1-self.min_test_fraction) >= self.samples_per_class):
-                keep.append(i)
-        return keep
-
+        split = np.zeros_like(index)
+        split[index] = maps > np.percentile(maps, k)
+        return split
 
     def _score_next_split(self, index):
 
@@ -118,59 +116,60 @@ class CounterfactualClustering(ClusterMixin, BaseEstimator):
             eigen_tol=self.eigen_tol
         ).reshape(-1)
 
-        splits = self._filter_splits(index, [self._split_vectors(index, maps, k) for k in self.retrain_k])
-
-        if len(splits) == 0:
+        # any k's that results in a cluster too small for training must be removed
+        split_size = index.sum()
+        valid_split = np.array([int(min(split_size-k*split_size, k*split_size)*self.max_train_fraction) for k in self.retrain_k/100]) > self.samples_per_class
+        
+        if valid_split.sum()==0:
+            # return score of 0 if none of these splits are valid and cluster must be retired
             return 0, None
 
-        if self.use_tqdm:
-            it = tqdm(splits, desc='Evaluating next splits for this cluster', total=len(splits))
-        else:
-            it = splits
+        else: 
+            split_vectors = [self._split_vectors(index, maps, k) for k in self.retrain_k[valid_split]]
 
-        scores = []
-        all_splits = []
+        
+        best_split_score = 0
+        best_split_vector = None
 
-        for splits in it:
-            split = [splits, (~splits & self.labels)]
-            score = []
-            for s in split:
-                try:
-                    mask_factory = partial(mask_factory_counterfactuals, alpha=self.retrain_alpha, split=s, min_test_fraction=self.min_test_fraction)
-                    if self.retrain:
-                        output = run_training_batch(self.experiment, batch_size=self.retrain_batch_size, mask_factory=mask_factory, use_tqdm=False, batch_starter_seed=self.rng.integers(0, 2 ** 32 - 1))
-                    else:
-                        output = MaskMarginStorage(n_models=self.retrain_batch_size, n_samples=self.experiment.dataset.num_samples, labels=self.labels, mask_factory=mask_factory,
-                                        rng= self.experiment.tc_random_generator(batch_starter_seed=self.rng.integers(0, 2 ** 32 - 1)).mask_rng)
-                        output.margins = (np.matmul(self.weights, output.masks.T)+self.biases).T
-
-                    score.append(self._split_score(output, s))
+        for vector in tqdm(split_vectors, desc='Evaluating next splits for this cluster', total=len(split_vectors)) if self.use_tqdm else split_vectors:
             
-                    
-                except ValueError as e: # TODO fix these error messages
-                    msg = str(e)
-                    if "Cannot sample" in msg and "per class" in msg:
-                        # sampling error: assign score to be zero here (don't have the power to make this split)
-                        score = 0
+            temporary_split_scores = []
+            
+            for s in [vector, (~vector & self.labels)]:
 
-                    elif "Bool split vector must index samples from one class only." in msg:
-                        score = 0
-                    
-                    else:
-                        # re-raise unknown ValueErrors
-                        raise
-            if (score[0] > self.split_thresh) & (score[1] > self.split_thresh):
-                scores.append(np.max(score))
-                all_splits.append(splits)
+                # for both the left and the right hand side of the split vector, compute the counterfactual or actual (retrain is True) split score
+                
+                mask_factory = partial(mask_factory_counterfactuals, alpha=self.retrain_alpha, split=s, min_test_fraction=self.min_test_fraction)
+                
+                if self.retrain:
+                    output = run_training_batch(self.experiment, 
+                                                batch_size=self.retrain_batch_size, 
+                                                mask_factory=mask_factory, 
+                                                use_tqdm=False, 
+                                                batch_starter_seed=self.rng.integers(0, 2 ** 32 - 1))
+                else:
+                    output = MaskMarginStorage(n_models=self.retrain_batch_size, 
+                                               n_samples=self.experiment.dataset.num_samples, 
+                                               labels=self.labels, 
+                                               mask_factory=mask_factory,
+                                               rng= self.experiment.tc_random_generator(batch_starter_seed=self.rng.integers(0, 2 ** 32 - 1)).mask_rng)
 
-        if len(scores)>0:
-            return scores[np.argmax(scores)], all_splits[np.argmax(scores)]
-        else:
-            return 0, None
+                    output.margins = (np.matmul(self.weights, output.masks.T)+self.biases).T
+
+                temporary_split_scores.append(self._split_score(output, s))
+    
+            if (np.all(np.array(temporary_split_scores) > self.split_thresh)) and (np.max(temporary_split_scores) > best_split_score):
+                # Only if a split results in two clusters that BOTH pass the split threshold AND if one of the scores is greater than the current best score, do we keep this split as an option 
+                best_split_score = np.max(temporary_split_scores) # keep the best score as a metric for this split
+                best_split_vector = vector
+
+        return best_split_score, best_split_vector
+   
 
 
     @_fit_context(prefer_skip_nested_validation=True)
     def fit(self, X, y=None):
+
         X = validate_data(
             self,
             X,
@@ -178,7 +177,9 @@ class CounterfactualClustering(ClusterMixin, BaseEstimator):
             dtype=np.float64,
             ensure_min_samples=2,
         )
+
         if not self.retrain and self.weights is None:
+            print("'weights' attribute is None. X is assumed to be the datamodels weights matrix.")
             self.weights = X
         if self.affinity == 'cosine_similarity':
             self.affinity_matrix_ = (cosine_similarity(X)+1)/2
@@ -189,6 +190,7 @@ class CounterfactualClustering(ClusterMixin, BaseEstimator):
 
         cluster_assignments = np.zeros(self.affinity_matrix_.shape[0])
         
+        # samples from the opposite class (i.e. not up for splitting) are assigned a final label of -1
         cluster_assignments[~self.labels] = -1
         working_clusters = set([0])
         done_clusters = set([-1])
@@ -196,38 +198,43 @@ class CounterfactualClustering(ClusterMixin, BaseEstimator):
         while working_clusters:
             current_clusters = list(working_clusters)
             for c in current_clusters:
+
                 print(f'\033[4mTrying split for cluster {c}\033[0m')
+
                 index = cluster_assignments == c
                 score, split = self._score_next_split(index)
+
                 if score > self.split_thresh:
-                    print(index.sum())
-                    print(split.sum())
+
                     new_cluster = max(cluster_assignments)+1
                     working_clusters.add(new_cluster)
                     cluster_assignments[split] = new_cluster
+
                     print(f"\033[3mSplit successful with score {score}, "
                     f"adding new cluster {new_cluster}.\033[0m")
-                    #working_clusters = None
+
                 elif score < self.split_thresh:
+
                     done_clusters.add(c)
                     working_clusters.remove(c)
+
                     print(f"\033[3mNo split happened with score {score}, "
                     f"moving cluster {c} to done clusters.\033[0m")
 
         self.labels_ = cluster_assignments
+        self.unique_labels_ = np.unique(self.labels_)[1:]
 
-        scores = {}
-        total_score = 0
-        for i in np.unique(self.labels_)[1:]:
-            print(i)
-            s = self.labels_==i
-            output = run_training_batch(self.experiment, batch_size=self.retrain_batch_size, mask_factory=partial(mask_factory_counterfactuals, alpha=self.retrain_alpha, split=s), use_tqdm=False, batch_starter_seed=self.rng.integers(0, 2 ** 32 - 1))
-            score = self._split_score(output, s)
-            scores[i] = score
-            total_score +=score
-        self.total_score = total_score
-        self.scores = scores
+        if self.validate:
+            self.label_scores_ = {}
+            self.total_score_ = 0
 
+            for i in self.unique_labels_:
+                s = self.labels_==i
+                output = run_training_batch(self.experiment, batch_size=self.retrain_batch_size, mask_factory=partial(mask_factory_counterfactuals, alpha=self.retrain_alpha, split=s), use_tqdm=False, batch_starter_seed=self.rng.integers(0, 2 ** 32 - 1))
+                score = self._split_score(output, s)
+                self.label_scores_[i] = score
+                self.total_score_ += score
+           
         print(f"\033[1mDone splitting. A total of {len(np.unique(self.labels_))-1} clusters found.\033[0m")
 
 
